@@ -21,12 +21,13 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvas
 from scipy import ndimage
 from scipy import misc
-import my_utilities as MU
-import my_widgets as MW
-import optimization_tools as OT
-import content_features as CF
 import inspect
 import importlib
+
+import myUtilities
+import myWidgets
+import optimizationTools
+
 
 # s = Gdk.Screen.get_default()
 np.set_printoptions(precision=3)
@@ -44,12 +45,12 @@ class Main(object):
         self.available_packages = None  # IT is actually the set of modules to be call
         self.list_of_available_fidelity_groups = None  # IT is a string with the name of the packages
         self.get_list_of_packages("./list_of_packages")
-        self.list_of_selected_methods = ['cd00_deltaE2000']
-        self.list_of_methods = ['cd00_deltaE2000']
-        self.plotted_cd = 'cd00_deltaE2000'
-        self.x_axis = 'cd00_deltaE2000'
-        self.y_axis = 'cd00_deltaE2000'
-        self.package_name = 'cd_measures_pack'
+        self.list_of_selected_methods = ['psnr']
+        self.list_of_methods = ['psnr']
+        self.plotted_cd = 'psnr'
+        self.x_axis = 'psnr'
+        self.y_axis = 'psnr'
+        self.package_name = 'miselaneusPack'
         self.stopped = False
         self.start_time = 0
         self.selected_pacakage = self.available_packages[self.package_name]
@@ -82,6 +83,9 @@ class Main(object):
         self.videoheight_default = (monitor_par.height - 150) / 2
         self.videowidth_default = (monitor_par.width - 320) / 2
         self.window.move(monitor_par.x, monitor_par.y)
+        # Default settings
+        self.create_status_bar()
+        myWidgets.create_menu_bar(self)
         # Comment/Uncomment the following two lines for standalone running
         self.window.connect("delete_event", lambda w, e: Gtk.main_quit())
         self.window.connect("destroy", lambda w: Gtk.main_quit())
@@ -109,9 +113,6 @@ class Main(object):
         self.set_ploting_space()
         # Setting Text Viewer
         self.create_textview()
-        # Default settings
-        self.create_status_bar()
-        MW.create_menu_bar(self)
         # Setting label
         self.label_current_frame = self.builder.get_object("label_current_image")
         self.label_current_frame.modify_font(Pango.FontDescription('Sans 20'))
@@ -151,8 +152,9 @@ class Main(object):
         misc.imsave('/tmp/temp_pro.png', center_image)
         center_image = self.CD  # [diff_h:shape_image[0]-diff_h,diff_w:shape_image[1]-diff_w]
         cmap = plt.get_cmap('jet')
-        center_image = (1. * center_image - np.min(center_image[:])) / (
-        np.max(center_image[:]) - np.min(center_image[:]))
+        if np.max(center_image[:]) - np.min(center_image[:]) != 0:
+            center_image = (1. * center_image - np.min(center_image[:])) / \
+                           (np.max(center_image[:]) - np.min(center_image[:]))
         center_image = np.delete(cmap(np.uint8(255 * center_image)), 3, 2)
         misc.imsave('/tmp/temp_cd.png', center_image)
 
@@ -226,7 +228,7 @@ class Main(object):
         figure_temp = Figure()
         if np.isnan(np.min(self.CD)):
             pass
-        n, _, _ = plt.hist(MU.convert_vec(self.CD), np.linspace(np.min(self.CD[:]), np.max(self.CD[:]), 255 + 1))
+        n, _, _ = plt.hist(myUtilities.convert_vec(self.CD), np.linspace(np.min(self.CD[:]), np.max(self.CD[:]), 255 + 1))
         plt.xlim([np.nanmin(self.CD[:]), np.nanmax(self.CD[:])])
         plt.ylim([np.nanmin(n), np.nanmax(n)])
         plt.xticks([])
@@ -240,7 +242,7 @@ class Main(object):
         self.list_of_methods = []
         for ii in range(len(inspect.getmembers(self.selected_pacakage, inspect.isfunction))):
             self.list_of_methods.append(inspect.getmembers(self.selected_pacakage, inspect.isfunction)[ii][0])
-        popwin = MW.popup_window_with_list(self.list_of_methods, sel_method=Gtk.SelectionMode.MULTIPLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_methods, sel_method=Gtk.SelectionMode.MULTIPLE,
                                            message="Measure")
         self.list_of_selected_methods = popwin.list_items
         if not self.list_of_selected_methods:
@@ -292,16 +294,18 @@ class Main(object):
         self.update_images()
         self.print_message('Current package: ' + self.package_name + '\n' + strin_of_values + \
                            'Current differnce map: ' + self.plotted_cd)
-        self.print_message('Running time: ' + MU.format_time(time.clock() - self.start_time))
+        self.print_message('Running time: ' + myUtilities.formatTime(time.clock() - self.start_time))
 
     def on_id_measures_click(self, button):
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="Measure")
         self.plotted_cd = popwin.list_items
         if not self.plotted_cd:
             self.return_to_default()
         if hasattr(self.selected_pacakage, self.plotted_cd):
             self.CD, _ = getattr(self.selected_pacakage, self.plotted_cd)(self.image_ref, self.image_pro)
+            self.CD[np.isnan(self.CD)] = 0
+            self.CD[np.isinf(self.CD)] = 0
         self.update_images()
         str_list_methods = ''
         str_list_methods += 'Reference ' + self.multimedia_file_ref.split('/')[-1] + '\n'
@@ -321,15 +325,15 @@ class Main(object):
     def single_sample_analysis(self, button):
         self.on_fid_groups_click()
         self.on_fid_measures_click()
-        self.multimedia_file_ref = MW.load_file(self.window, 'img', 'Select your Reference Image')
+        self.multimedia_file_ref = myWidgets.load_file(self.window, 'img', 'Select your Reference Image')
         self.image_ref = ndimage.imread(self.multimedia_file_ref)
-        self.multimedia_file_pro = MW.load_file(self.window, 'img', 'Select your Processed Image')
+        self.multimedia_file_pro = myWidgets.load_file(self.window, 'img', 'Select your Processed Image')
         self.image_pro = ndimage.imread(self.multimedia_file_pro)
         self.on_clicked()
         self.print_message("Process Finished!")
 
     def on_fid_groups_click(self, button=None):
-        popwin = MW.popup_window_with_list(self.list_of_available_fidelity_groups, sel_method=Gtk.SelectionMode.SINGLE)
+        popwin = myWidgets.popup_window_with_list(self.list_of_available_fidelity_groups, sel_method=Gtk.SelectionMode.SINGLE)
         self.package_name = popwin.list_items
         if not self.package_name:
             self.return_to_default()
@@ -352,7 +356,7 @@ class Main(object):
                            str_list_methods + 'Current differnce map: ' + self.plotted_cd)
 
     def print_message(self, message):
-        current_time = MW.get_time()
+        current_time = myWidgets.get_time()
         self.textbuffer.insert_with_tags(self.textbuffer.get_end_iter(), '\n' + '\n' + current_time + '\n', self.h_tag)
         self.textbuffer.insert(self.textbuffer.get_end_iter(), message + '\n')
 
@@ -373,7 +377,7 @@ class Main(object):
 
     def on_ti_measures_click(self, button):
         pr_file = self.multimedia_file_ref
-        popwin = MW.popup_window_with_list(self.list_of_ref_samples, sel_method=Gtk.SelectionMode.SINGLE, \
+        popwin = myWidgets.popup_window_with_list(self.list_of_ref_samples, sel_method=Gtk.SelectionMode.SINGLE, \
                                            split_=True, message="Reference image")
         self.multimedia_file_ref = popwin.list_items
         if not self.multimedia_file_ref:
@@ -392,7 +396,7 @@ class Main(object):
                 self.multimedia_file_ref = nw_file
         self.image_ref = ndimage.imread(self.multimedia_file_ref)
         pr_file = self.multimedia_file_pro
-        popwin = MW.popup_window_with_list(self.list_of_test_samples[self.multimedia_file_ref.split('/')[-1]], \
+        popwin = myWidgets.popup_window_with_list(self.list_of_test_samples[self.multimedia_file_ref.split('/')[-1]], \
                                            sel_method=Gtk.SelectionMode.SINGLE, split_=True, message="Test image")
         self.multimedia_file_pro = popwin.list_items
         if not self.multimedia_file_pro:
@@ -433,12 +437,12 @@ class Main(object):
     def on_click_single_multiple(self, button):
         self.on_fid_groups_click()
         self.on_fid_measures_click()
-        self.multimedia_file_ref = MW.load_file(self.window, 'img', 'Select your Reference Image')
+        self.multimedia_file_ref = myWidgets.load_file(self.window, 'img', 'Select your Reference Image')
         self.list_of_ref_samples = [self.multimedia_file_ref]
         self.image_ref = ndimage.imread(self.multimedia_file_ref)
         self.list_of_test_samples = {}
         self.list_of_test_samples[self.multimedia_file_ref.split('/')[-1]] = \
-            MW.load_file(self.window, 'img', 'Select your Processed Images', multiple=True)
+            myWidgets.load_file(self.window, 'img', 'Select your Processed Images', multiple=True)
         if self.list_of_test_samples[self.multimedia_file_ref.split('/')[-1]]:
             for ii in self.list_of_test_samples[self.multimedia_file_ref.split('/')[-1]]:
                 self.multimedia_file_pro = ii
@@ -455,12 +459,12 @@ class Main(object):
         self.print_message("Process Finished!")
 
     def on_mx_my_plot_click(self, button):
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="X axis measure")
         self.x_axis = popwin.list_items
         if not self.x_axis:
             self.x_axis = 'cd00_deltaE2000'
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="Y axis measure")
         self.y_axis = popwin.list_items
         if not self.y_axis:
@@ -493,9 +497,9 @@ class Main(object):
         self.on_clicked()
 
     def on_add_mos_click(self, button=None):
-        temp = MW.load_file(self.window, 'txt', 'Select your MOS or measure file')
+        temp = myWidgets.load_file(self.window, 'txt', 'Select your MOS or measure file')
         if temp:
-            popwin = MW.popup_window_with_text_input('Name your measure: ')
+            popwin = myWidgets.popup_window_with_text_input('Name your measure: ')
             with  open(temp) as f:
                 for line in f:
                     temp_string = line.split()
@@ -508,7 +512,7 @@ class Main(object):
             self.print_message("Error Selecting dmos/measure File. Please Try again")
 
     def on_add_nfg_click(self, button=None):
-        popwin = MW.popup_window_with_text_input()
+        popwin = myWidgets.popup_window_with_text_input()
         self.list_of_available_fidelity_groups.append(popwin.file_name)  # IT is a string with the name of the packages
         file('./list_of_packages', 'w').write("\n".join(self.list_of_available_fidelity_groups) + "\n")
         self.get_list_of_packages("./list_of_packages")
@@ -517,7 +521,7 @@ class Main(object):
     def get_list_of_packages(self, file_name):
         list_of_packages = []
         list_of_modules = {}
-        with  open(file_name) as f:
+        with open(file_name) as f:
             for line in f:
                 line = line.replace('\n', '')
                 if self.verify_package(line):
@@ -542,7 +546,7 @@ class Main(object):
             return None
 
     def on_load_click(self, button=None):
-        temp = MW.load_file(self.window, 'txt', 'Select your .iFAS file')
+        temp = myWidgets.load_file(self.window, 'txt', 'Select your .iFAS file')
         with open(temp) as f:
             self.cd, self.multimedia_file_ref, self.multimedia_file_pro, self.list_of_test_samples, \
             self.list_of_ref_samples, self.plotted_cd, self.list_of_selected_methods, \
@@ -576,7 +580,7 @@ class Main(object):
         self.print_message("Load completed")
 
     def on_save_click(self, button=None):
-        popwin = MW.popup_window_with_text_input('Name your file: ')
+        popwin = myWidgets.popup_window_with_text_input('Name your file: ')
         with open(self.working_path + '/' + popwin.file_name + '.iFAS', 'w') as f:
             pickle.dump([self.cd, self.multimedia_file_ref, self.multimedia_file_pro, self.list_of_test_samples, \
                          self.list_of_ref_samples, self.plotted_cd, self.list_of_selected_methods, \
@@ -589,7 +593,7 @@ class Main(object):
         self.on_fid_measures_click()
         self.list_of_test_samples = {}
         self.list_of_ref_samples = []
-        temp = MW.load_file(self.window, 'txt', 'Select your .iFASpro file')
+        temp = myWidgets.load_file(self.window, 'txt', 'Select your .iFASpro file')
         file_location = '/'.join(temp.split('/')[0:-1])
         if temp:
             with  open(temp) as f:
@@ -648,7 +652,7 @@ class Main(object):
             self.axis.set_ylabel(self.y_axis, fontsize=12)
             self.axis.set_xlabel(self.x_axis, fontsize=12)
             self.figure.canvas.draw()
-            p, s, t, pd = MU.compute_1dcorrelatiosn(vec[:, 0], vec[:, 1])
+            p, s, t, pd = myUtilities.compute_1dcorrelatiosn(vec[:, 0], vec[:, 1])
             self.print_message("Pearsonr = " + "%.5f" % p + "\n" + "Spearmanr = " + "%.5f" % s + \
                                "\n" + "Kendalltau = " + "%.5f" % t + "\n" + "Correlation distance = " + "%.5f" % pd)
 
@@ -666,7 +670,7 @@ class Main(object):
                                         vec.append([self.cd[jj.split('/')[-1]][kk.split('/')[-1]][ii], \
                                                     self.cd[jj.split('/')[-1]][kk.split('/')[-1]]['dmos']])
                 vec = np.asarray(vec)
-                p, s, t, pd = MU.compute_1dcorrelatiosn(vec[:, 0], vec[:, 1])
+                p, s, t, pd = myUtilities.compute_1dcorrelatiosn(vec[:, 0], vec[:, 1])
                 corrs[ii] = np.abs(np.asarray([p, s, t, pd]))
                 self.print_message(ii + '\n' + 'Pearsonr: ' + "%.5f" % p + '\n' + 'Spearmanr: ' + "%.5f" % s \
                                    + '\n' + 'Kendalltau: ' + "%.5f" % t + '\n' + 'Correlation distance: ' + "%.5f" % pd)
@@ -696,7 +700,7 @@ class Main(object):
         message += "\nBest according to Correlation distance is " + pos_pd + \
                    ': ' + "%.5f" % pdmax
         self.print_message(message)
-        temp = MW.popup_window_with_bar_plot(self, corrs)
+        temp = myWidgets.popup_window_with_bar_plot(self, corrs)
 
     def on_boxplot_click(self, button=None):
         corrs = {}
@@ -713,20 +717,20 @@ class Main(object):
                                         vec.append([self.cd[jj.split('/')[-1]][kk.split('/')[-1]][ii], \
                                                     self.cd[jj.split('/')[-1]][kk.split('/')[-1]]['dmos']])
                         vec = np.asarray(vec)
-                        p, s, t, pd = MU.compute_1dcorrelatiosn(vec[:, 0], vec[:, 1])
+                        p, s, t, pd = myUtilities.compute_1dcorrelatiosn(vec[:, 0], vec[:, 1])
                         corrs[ii].append([p, s, t, pd])
                         self.print_message(ii + '\n' + jj.split('/')[-1] + '\n' + 'Pearsonr: ' + "%.5f" % p + '\n' + \
                                            'Spearmanr: ' + "%.5f" % s + '\n' + 'Kendalltau: ' + "%.5f" % t + '\n' + \
                                            'Correlation distance: ' + "%.5f" % pd)
                 corrs[ii] = np.asarray(corrs[ii])
-        temp = MW.popup_window_with_box_plot(self, corrs)
+        temp = myWidgets.popup_window_with_box_plot(self, corrs)
 
     def on_scatterplot_click(self, button=None):
         values = {}
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="X axis measure")
         x_axis = popwin.list_items
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="Y axis measure")
         y_axis = popwin.list_items
         for jj in self.list_of_ref_samples:
@@ -739,19 +743,19 @@ class Main(object):
                             values[jj.split('/')[-1]].append([self.cd[jj.split('/')[-1]][kk.split('/')[-1]][x_axis], \
                                                               self.cd[jj.split('/')[-1]][kk.split('/')[-1]][y_axis]])
                 values[jj.split('/')[-1]] = np.asarray(values[jj.split('/')[-1]])
-        temp = MW.popup_window_with_scatterplot(self, values, (x_axis, y_axis))
+        temp = myWidgets.popup_window_with_scatterplot(self, values, (x_axis, y_axis))
 
     def on_regression_click(self, button=None, data=None):
-        popwin = MW.popup_window_with_list(self.list_of_ref_samples, sel_method=Gtk.SelectionMode.MULTIPLE, \
+        popwin = myWidgets.popup_window_with_list(self.list_of_ref_samples, sel_method=Gtk.SelectionMode.MULTIPLE, \
                                            split_=True, message="Reference image TRAINING")
         list_of_training = popwin.list_items
-        popwin = MW.popup_window_with_list(self.list_of_ref_samples, sel_method=Gtk.SelectionMode.MULTIPLE, \
+        popwin = myWidgets.popup_window_with_list(self.list_of_ref_samples, sel_method=Gtk.SelectionMode.MULTIPLE, \
                                            split_=True, message="Reference image TEST")
         list_of_test = popwin.list_items
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="Independent variable")
         x_axis = popwin.list_items
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="Dependent variable")
         y_axis = popwin.list_items
         x = []
@@ -766,13 +770,13 @@ class Main(object):
                             y.append(self.cd[ii][jj.split('/')[-1]][y_axis])
         x = np.array(x)
         y = np.array(y)
-        aopt = OT.optimize_function(x, y, fun_type=data)
-        y_est = OT.gen_data(x, aopt, fun_type=data)
+        aopt = optimizationTools.optimize_function(x, y, fun_type=data)
+        y_est = optimizationTools.gen_data(x, aopt, fun_type=data)
         messagea = ''
         for ii in range(len(aopt)):
             messagea += 'a' + str(ii) + ": %.5f" % aopt[ii] + '\n'
-        self.print_message("The optimal parameters for function\n" + OT.fun_text(data) + "\n" + messagea)
-        p, s, t, pd = MU.compute_1dcorrelatiosn(y, y_est)
+        self.print_message("The optimal parameters for function\n" + optimizationTools.fun_text(data) + "\n" + messagea)
+        p, s, t, pd = myUtilities.compute_1dcorrelatiosn(y, y_est)
         self.print_message('Training values: ' + '\n' + 'Pearsonr: ' + "%.5f" % p + '\n' + \
                            'Spearmanr: ' + "%.5f" % s + '\n' + 'Kendalltau: ' + "%.5f" % t + '\n' + \
                            'Correlation distance: ' + "%.5f" % pd)
@@ -788,26 +792,26 @@ class Main(object):
                             y_test.append(self.cd[ii][jj.split('/')[-1]][y_axis])
         x_test = np.array(x_test)
         y_test = np.array(y_test)
-        y_est_test = OT.gen_data(x_test, aopt, fun_type=data)
-        p, s, t, pd = MU.compute_1dcorrelatiosn(y_test, y_est_test)
+        y_est_test = optimizationTools.gen_data(x_test, aopt, fun_type=data)
+        p, s, t, pd = myUtilities.compute_1dcorrelatiosn(y_test, y_est_test)
         self.print_message('Testing values: ' + '\n' + 'Pearsonr: ' + "%.5f" % p + '\n' + \
                            'Spearmanr: ' + "%.5f" % s + '\n' + 'Kendalltau: ' + "%.5f" % t + '\n' + \
                            'Correlation distance: ' + "%.5f" % pd)
         data_to_plot = {}
         xfull = np.linspace(np.minimum(np.min(x), np.min(x_test)), np.maximum(np.max(x), np.max(x_test)), 100)
-        data_to_plot['rl'] = np.transpose(np.vstack((xfull, OT.gen_data(xfull, aopt, fun_type=data))))
+        data_to_plot['rl'] = np.transpose(np.vstack((xfull, optimizationTools.gen_data(xfull, aopt, fun_type=data))))
         data_to_plot['t'] = np.transpose(np.vstack((x, y)))
         data_to_plot['s'] = np.transpose(np.vstack((x_test, y_test)))
-        temp = MW.popup_window_with_scatterplot_regression(self, data_to_plot, (x_axis, y_axis))
+        temp = myWidgets.popup_window_with_scatterplot_regression(self, data_to_plot, (x_axis, y_axis))
 
     def on_boxplot_diff_click(self, button=None):
-        popwin = MW.popup_window_with_list(self.list_of_ref_samples, sel_method=Gtk.SelectionMode.MULTIPLE, \
+        popwin = myWidgets.popup_window_with_list(self.list_of_ref_samples, sel_method=Gtk.SelectionMode.MULTIPLE, \
                                            split_=True, message="Reference images for the analysis")
         list_of_ref = popwin.list_items
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.MULTIPLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.MULTIPLE,
                                            message="Select algorithms for the analysis")
         list_of_methods = popwin.list_items
-        popwin = MW.popup_window_with_box_plot_differences(Object=self, data=self.cd, ref_names=list_of_ref, \
+        popwin = myWidgets.popup_window_with_box_plot_differences(Object=self, data=self.cd, ref_names=list_of_ref, \
                                                            list_methods=list_of_methods)
 
     def on_hist_content_features(self, button=None):
@@ -815,7 +819,7 @@ class Main(object):
         list_of_methods = []
         for ii in range(len(list_content_features)):
             list_of_methods.append(list_content_features[ii][0])
-        popwin = MW.popup_window_with_list(list_of_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(list_of_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="Content features")
         vec = []
         vec_names = []
@@ -823,16 +827,16 @@ class Main(object):
             self.content_features[ii.split('/')[-1]] = getattr(CF, popwin.list_items)(ndimage.imread(ii))
             vec.append(self.content_features[ii.split('/')[-1]])
             vec_names.append(ii.split('/')[-1])
-        popwin = MW.popup_window_with_content_hist(Object=self, data=vec)
+        popwin = myWidgets.popup_window_with_content_hist(Object=self, data=vec)
         print vec
 
     def on_heatmap_click(self, button=None):
         self.print_message("Heating the map")
         values = []
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="X axis measure")
         x_axis = popwin.list_items
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="Y axis measure")
         y_axis = popwin.list_items
         for jj in self.list_of_ref_samples:
@@ -847,26 +851,26 @@ class Main(object):
                                            self.cd[jj.split('/')[-1]][kk.split('/')[-1]]['dmos']])
         values = np.asarray(values)
         data = {x_axis: values[:, 0], y_axis: values[:, 1], 'dmos': values[:, 2]}
-        temp = MW.popup_window_with_parametermap(self, data, para_rangex=(0.0, 1), para_rangey=(0.0, 1), name_axis=(x_axis, y_axis))
+        temp = myWidgets.popup_window_with_parametermap(self, data, para_rangex=(0.0, 1), para_rangey=(0.0, 1), name_axis=(x_axis, y_axis))
 
     def on_multiple_plot(self, button=None, data=None):
         prelist = []
         for ii in sorted(self.list_of_test_samples):
             for jj in sorted(self.list_of_test_samples[ii]):
                 prelist.append(jj)
-        popwin = MW.popup_window_with_list(sorted(prelist, key=lambda s: s[-9:-1]), sel_method=Gtk.SelectionMode.MULTIPLE,\
+        popwin = myWidgets.popup_window_with_list(sorted(prelist, key=lambda s: s[-9:-1]), sel_method=Gtk.SelectionMode.MULTIPLE,\
                                            split_=True, message="First distortion")
         list_of_first_dis = popwin.list_items
-        popwin = MW.popup_window_with_list(sorted(prelist, key=lambda s: s[-9:-1]), sel_method=Gtk.SelectionMode.MULTIPLE,\
+        popwin = myWidgets.popup_window_with_list(sorted(prelist, key=lambda s: s[-9:-1]), sel_method=Gtk.SelectionMode.MULTIPLE,\
                                            split_=True, message="Second distortion")
         list_of_second_dis = popwin.list_items
-        popwin = MW.popup_window_with_list(sorted(prelist, key=lambda s: s[-9:-1]), sel_method=Gtk.SelectionMode.MULTIPLE,\
+        popwin = myWidgets.popup_window_with_list(sorted(prelist, key=lambda s: s[-9:-1]), sel_method=Gtk.SelectionMode.MULTIPLE,\
                                            split_=True, message="Third distortion")
         list_of_third_dis = popwin.list_items
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="X axis")
         x_axis = popwin.list_items
-        popwin = MW.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
+        popwin = myWidgets.popup_window_with_list(self.list_of_selected_methods, sel_method=Gtk.SelectionMode.SINGLE,
                                            message="Y axis")
         y_axis = popwin.list_items
         vals = []
@@ -884,17 +888,17 @@ class Main(object):
                     if self.cd[jj.split('/')[-1]].has_key(kk):
                         if self.cd[jj.split('/')[-1]][kk].has_key(x_axis) and self.cd[jj.split('/')[-1]][kk].has_key(y_axis):
                             vals.append([self.cd[jj.split('/')[-1]][kk][x_axis], self.cd[jj.split('/')[-1]][kk][y_axis], 2])
-        temp = MW.popup_window_with_scatterplot_wizard(self, np.array(vals), (x_axis, y_axis))
+        temp = myWidgets.popup_window_with_scatterplot_wizard(self, np.array(vals), (x_axis, y_axis))
 
     def on_guide_click(self, button=None):
         self.print_message("Do you need some help?\nPlease see our help GUIDE in pdf format")
         self.on_about_click()
         opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, self.working_path + '/documents/Help.pdf'])
+        subprocess.call([opener, self.working_path + '/Help.pdf'])
 
     def on_about_click(self, button=None):
-        self.print_message("iFAS alpha-Version Edition " + 'December 2016' + '\n' + \
-                           'Copyright 2016 Benhur Ortiz Jaramillo\n' + \
+        self.print_message("iFAS alpha-Version Edition " + 'April 2019' + '\n' + \
+                           'Copyleft 2019 Benhur Ortiz-Jaramillo\n' + \
                            'This program comes with absolutely no warranty.\n' + \
                            'See the GNU General Public License for details.')
 
