@@ -28,8 +28,6 @@ import myUtilities
 import myWidgets
 import optimizationTools
 
-
-# s = Gdk.Screen.get_default()
 np.set_printoptions(precision=3)
 # Create GUI Class and its components
 line = np.linspace(0, 255, num=255, endpoint=True, retstep=False, dtype='uint8')
@@ -43,7 +41,7 @@ class Main(object):
         # Variable initialization
         self.working_path = os.path.dirname(os.path.abspath(__file__))
         self.available_packages = None  # IT is actually the set of modules to be call
-        self.list_of_available_fidelity_groups = None  # IT is a string with the name of the packages
+        self.list_of_available_fidelity_groups = None  # It is a string with the name of the packages
         self.get_list_of_packages("./list_of_packages")
         self.list_of_selected_methods = ['psnr']
         self.list_of_methods = ['psnr']
@@ -54,8 +52,7 @@ class Main(object):
         self.stopped = False
         self.start_time = 0
         self.selected_pacakage = self.available_packages[self.package_name]
-        # self.videoheight_default = (s.get_height()-130)/2
-        # self.videowidth_default = (s.get_width()-300)/2
+
         # Default settings
         self.multimedia_file_ref = self.working_path + '/sample_images/test_ref_0.bmp'
         self.image_ref = ndimage.imread(self.multimedia_file_ref)
@@ -69,20 +66,22 @@ class Main(object):
         self.list_of_ref_samples = [self.multimedia_file_ref]
         self.cd[self.multimedia_file_ref.split('/')[-1]] = {}
         self.cd[self.multimedia_file_ref.split('/')[-1]][self.multimedia_file_pro.split('/')[-1]] = {}
+
         # Getting Window started with glade (See .glade File)
         self.builder = Gtk.Builder()
-        self.window = self.builder.add_from_file('iFAS.glade')  # ,'VQAwindow'
+        self.window = self.builder.add_from_file('iFAS.glade')
         self.window = self.builder.get_object('MainWindow')
         self.window.set_title("iFAS - Image Fidelity Assessment Software")
+
         screen = self.window.get_screen()
         monitors = []
         for m in range(screen.get_n_monitors()):
             monitors.append(screen.get_monitor_geometry(m))
         curmon = screen.get_monitor_at_window(screen.get_active_window())
         monitor_par = monitors[curmon]
-        self.videoheight_default = (monitor_par.height - 150) / 2
-        self.videowidth_default = (monitor_par.width - 320) / 2
-        self.window.move(monitor_par.x, monitor_par.y)
+        self.videoheight_default = int((monitor_par.height - 160) / 2.)
+        self.videowidth_default = int((monitor_par.width - 30) / 2.)
+        # self.window.move(monitor_par.x, monitor_par.y)
         # Default settings
         self.create_status_bar()
         myWidgets.create_menu_bar(self)
@@ -103,11 +102,6 @@ class Main(object):
         drawable_loc = self.builder.get_object("box5")
         self.drawable_dif = Gtk.Image()
         self.set_image_on_scrolledwindow(drawable_loc, self.drawable_dif)
-        self.drawable_map = self.builder.get_object("image4")
-        self.label_high = self.builder.get_object("label_high_val")
-        self.label_high.modify_font(Pango.FontDescription('Sans 20'))
-        self.label_low = self.builder.get_object("label_low_val")
-        self.label_low.modify_font(Pango.FontDescription('Sans 20'))
         self.CD, _ = getattr(self.selected_pacakage, self.plotted_cd)(self.image_ref, self.image_pro)
         # Setting Plot canvas
         self.set_ploting_space()
@@ -127,9 +121,7 @@ class Main(object):
         self.button_stop.connect("clicked", self.on_stop_all)
         self.update_images()
         self.window.show_all()
-        # self.window.maximize()
         self.on_about_click()
-        self.update_screen_size()
 
     def on_stop_all(self, button=None):
         self.print_message("Stop Pressed")
@@ -171,9 +163,6 @@ class Main(object):
         image2 = misc.imresize(image2, (image1.shape[0], 16), interp='bilinear')
         image3 = np.concatenate((image1[:, 0::2, :], image2), axis=1)
         misc.imsave('/tmp/temp_mapandhist.png', image3[8:-8, :, :])
-        self.drawable_map.set_from_file('/tmp/temp_mapandhist.png')
-        self.label_low.set_text('Min ' + format(np.min(self.CD[:]), '.3f'))
-        self.label_high.set_text('Max ' + format(np.max(self.CD[:]), '.3f'))
         # Removing temp files
         os.remove("/tmp/temp_ref.png")
         os.remove("/tmp/temp_pro.png")
@@ -181,7 +170,6 @@ class Main(object):
         os.remove("/tmp/temp_mapandhist.png")
         # os.remove("/tmp/color_map.png")
         os.remove("/tmp/temp_hist.png")
-        self.update_screen_size()
 
     def set_ploting_space(self):
         # Setting Plot canvas
@@ -189,23 +177,23 @@ class Main(object):
         self.axis = self.figure.add_subplot(111)
         self.axis.tick_params(labelsize=8)
         self.axis.set_autoscale_on(True)
-        box = self.axis.get_position()
-        self.axis.set_position([box.x0 + 0.02, box.y0 + 0.05, box.width - 0.0, box.height])
         self.plotted, = self.axis.plot([], [], linestyle='None', marker='x', color='r', markersize=8, fillstyle='full',
                                        markeredgewidth=3.0)
         self.canvas = FigureCanvas(self.figure)
-        self.canvas.set_size_request(5. * self.videowidth_default / 8, self.videoheight_default)
+        self.canvas.set_size_request(int(9. * self.videowidth_default / 16.), self.videoheight_default)
         self.plot_place = self.builder.get_object("box4")
         self.plot_place.pack_start(self.canvas, True, True, 0)
 
+
     def create_textview(self):
+        self.scrview_place = self.builder.get_object("box6")
         self.scrolledwindow = Gtk.ScrolledWindow()
         self.scrolledwindow.set_hexpand(True)
         self.scrolledwindow.set_vexpand(True)
         self.scrolledwindow.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
-        self.scrolledwindow.set_property("width-request", 3. * self.videowidth_default / 8)
+        self.scrolledwindow.set_property("width-request", int(7. * self.videowidth_default / 16.))
         self.scrolledwindow.set_property("height-request", self.videoheight_default)
-        self.plot_place.pack_start(self.scrolledwindow, True, True, 0)
+        self.scrview_place.pack_start(self.scrolledwindow, True, True, 0)
 
         self.textview = Gtk.TextView()
         self.textbuffer = self.textview.get_buffer()
@@ -360,18 +348,18 @@ class Main(object):
         self.textbuffer.insert_with_tags(self.textbuffer.get_end_iter(), '\n' + '\n' + current_time + '\n', self.h_tag)
         self.textbuffer.insert(self.textbuffer.get_end_iter(), message + '\n')
 
-    def update_screen_size(self):
+    def update_screen_size(self, button):
         screen = self.window.get_screen()
         monitors = []
         for m in range(screen.get_n_monitors()):
             monitors.append(screen.get_monitor_geometry(m))
         curmon = screen.get_monitor_at_window(screen.get_active_window())
         monitor_par = monitors[curmon]
-        self.videoheight_default = (monitor_par.height - 130) / 2
-        self.videowidth_default = (monitor_par.width - 300) / 2
-        self.window.move(monitor_par.x, monitor_par.y)
-        self.canvas.set_size_request(5. * self.videowidth_default / 8, self.videoheight_default)
-        self.scrolledwindow.set_property("width-request", 3. * self.videowidth_default / 8)
+        self.videoheight_default = int((monitor_par.height - 150) / 2.)
+        self.videowidth_default = int((monitor_par.width - 50) / 2.)
+        # self.window.move(monitor_par.x, monitor_par.y)
+        self.canvas.set_size_request(int(9. * self.videowidth_default / 16.), self.videoheight_default)
+        self.scrolledwindow.set_property("width-request", int(7. * self.videowidth_default / 16.))
         self.scrolledwindow.set_property("height-request", self.videoheight_default)
         self.status_bar.set_property("width-request", self.videowidth_default)
 
