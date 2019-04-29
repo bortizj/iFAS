@@ -113,4 +113,8 @@ def epsnr(Ref_image, Pro_image):
     np.subtract(Yref,Ypro,out=aux)
     np.square(aux,out=aux)
     mse = np.mean(aux[mask])
-    return aux*mask, (20*np.log10(255)-10*np.log10(mse))
+    if mse != 0:
+        psnr = (20*np.log10(255)-10*np.log10(mse))
+    else:
+        psnr = 1.e6
+    return aux*mask, psnr
