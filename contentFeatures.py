@@ -117,9 +117,4 @@ def colorfulness(RGB, sizewin=3, type='Hasler'): #type = 'Hasler', 'Gao', or 'Pa
         C = np.sqrt(np.abs(Sigma_alpha_sq) + np.abs(Sigma_beta_sq)) + 0.3 * np.sqrt(Mu_alpha_sq + Mu_beta_sq)
     C[np.isnan(C)] = 0
     C[np.isinf(C)] = 0
-    return C, c
-
-
-if __name__ == "__main__":
-    img = ndimage.imread('/media/bortiz/Data/PhD_Thesis_files/Experiments/Chapt6-color/Tid2013Color/i15.bmp')
-    principal_color(img, th=0.02, r=1., min_num_pixels=9)
+    return c

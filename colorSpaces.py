@@ -135,8 +135,6 @@ def RGB2Ljg(RGB):
 
 
 # Extra functions necessary to compute color spaces, e.g., intermediate color spaces
-
-
 def iCAM06_blur(img, d):
     sy,sx,sz = img.shape
     m = np.minimum(sy,sx)

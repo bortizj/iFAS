@@ -5,6 +5,8 @@ from scipy import ndimage
 import importlib
 
 
+# Python object contains the reference image, processed image and the necessary functions to compute the
+# values
 class ImageSet(object):
     # Variable initialization
     # referenceImageLocation: string with folder location to the reference image
@@ -26,7 +28,9 @@ class ImageSet(object):
         self.Nmeasures = int(len(listFunctions))
         self.currentMeasure = listFunctions[0]
         # Initializing data dictionary
-        self.data = {}
+        self.data = dict()
+        self.contentFeatures = dict()
+        self.regressionModel = None
         for ii in self.listMeasures:
             self.data[ii] = np.zeros((self.NprocessedImages, 1))
         self.computeData()
@@ -67,6 +71,8 @@ class ImageSet(object):
         if hasattr(package, DifferenceImage):
             self.currentMeasure = DifferenceImage
             self.imageDifference, _ = getattr(package, self.currentMeasure)(self.imageReference, self.imageProcessed)
+            self.imageDifference[np.isnan(self.imageDifference)] = 0.
+            self.imageDifference[np.isinf(self.imageDifference)] = 0.
             print "Image difference set to " + self.currentMeasure
         else:
             print "Current package named " + self.package + " has not attribute " + DifferenceImage
@@ -74,30 +80,63 @@ class ImageSet(object):
     # Adds a numpy array of data (n x 1) to the dictionary data with string name measureName
     def addPrecomputedData(self, measureName, data):
         if not (self.data.has_key(measureName) or self.NprocessedImages != data.size):
-            self.data[measureName] = data
-            print "Attribute named " + self.currentMeasure + " has been set. This has data has not been saved!"
+            self.data[measureName] = data.reshape((data.size, 1))
+            if not (measureName in self.listMeasures):
+                self.listMeasures.append(measureName)
+            print "Attribute named " + measureName + " has been added. This data has not been saved!"
         elif self.NprocessedImages != data.size:
             print "Data size does not agree with input size " + str(self.NprocessedImages) + " != " + str(data.size)
         else:
             print "Current Image set has already an attribute named " + self.currentMeasure
 
+    # changing and recomputing the data based on the selection
+    def changeMeasures(self, package, listFunctions):
+        self.package = package
+        self.listMeasures = listFunctions
+        self.Nmeasures = int(len(listFunctions))
+        self.currentMeasure = listFunctions[0]
+        # Initializing data dictionary
+        self.data = ()
+        self.contentFeatures = dict()
+        for ii in self.listMeasures:
+            self.data[ii] = np.zeros((self.NprocessedImages, 1))
+        self.computeData()
 
-# ~ Uncomment the following three lines for standalone running
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    refimage = "/media/bortiz/Data/Full_Papers/IFAApplications/documents/iFAS/sample_images/i03.bmp"
-    proimages = ["/media/bortiz/Data/Full_Papers/IFAApplications/documents/iFAS/sample_images/i03/i03_07_1.bmp",\
-                 "/media/bortiz/Data/Full_Papers/IFAApplications/documents/iFAS/sample_images/i03/i03_07_2.bmp",\
-                 "/media/bortiz/Data/Full_Papers/IFAApplications/documents/iFAS/sample_images/i03/i03_07_3.bmp",\
-                 "/media/bortiz/Data/Full_Papers/IFAApplications/documents/iFAS/sample_images/i03/i03_07_4.bmp",\
-                 "/media/bortiz/Data/Full_Papers/IFAApplications/documents/iFAS/sample_images/i03/i03_07_5.bmp"]
-    listfunctions = ["psnr", "ssim", "SSIM", "blocking_diff", "noise_diff", "blur_diff", "epsnr"]
-    imgSet = ImageSet(refimage, proimages, "miselaneusPack", listfunctions)
+    # Return data as numpy array
+    def returnVector(self, measure=None):
+        if measure is None:
+            data = []
+            name = []
+            for ii in self.listMeasures:
+                data.append(self.data[ii])
+                name.append(self.proFileLocations)
+        else:
+            data = self.data[measure]
+            name = self.proFileLocations
+        return name, data
 
-    imgSet.changeProcessedImage("dildo")
-    imgSet.changeProcessedImage("/media/bortiz/Data/Full_Papers/IFAApplications/documents/iFAS/sample_images/i03/i03_07_3.bmp")
-    imgSet.changeDifferenceImage("ssim")
-    imgSet.changeDifferenceImage("dildo")
-    imgSet.addPrecomputedData("dmos", np.ones((4, 1)))
-    imgSet.addPrecomputedData("psnr", np.ones((5, 1)))
-    imgSet.addPrecomputedData("dmos", np.ones((5, 1)))
+    # Return data as numpy array for specific list of processed images
+    def returnVectorProcessed(self, measure, processedList):
+        data = []
+        for ii in processedList:
+            data.append(self.data[measure][ii])
+        return np.array(data)
+
+    # Return a value for specific processed image
+    def returnValueProcessed(self, measure, processedFile):
+        idx = self.proFileLocations.index(processedFile)
+        return self.data[measure][idx]
+
+    # Return the list of processed images
+    def returnListProcessed(self):
+        return self.proFileLocations
+
+    # Content related features to the reference image
+    def computeContentFeatures(self, package, features):
+        self.contentFeatures = dict()
+        for ii in features:
+            self.contentFeatures[ii] = getattr(package, ii)(self.imageReference)
+
+    # regression model
+    def setRegressionModel(self, model=None):
+        self.regressionModel = model

@@ -9,7 +9,7 @@ import myUtilities
 
 def psnr(Ref_image, Pro_image):
     Yref = myUtilities.checkifRGB(Ref_image)
-    Ypro = myUtilities.checkifRGB(Ref_image)
+    Ypro = myUtilities.checkifRGB(Pro_image)
     mse = np.mean(np.power(Yref - Ypro, 2))
     if mse != 0:
         psnr = 10 * np.log10((255. ** 2) / mse)
@@ -20,7 +20,7 @@ def psnr(Ref_image, Pro_image):
 
 def ssim(Ref_image, Pro_image):
     Yref = myUtilities.checkifRGB(Ref_image)
-    Ypro = myUtilities.checkifRGB(Ref_image)
+    Ypro = myUtilities.checkifRGB(Pro_image)
     val, SSIM = measure.compare_ssim(Yref, Ypro, full=True)
     return SSIM, val
 
@@ -57,14 +57,14 @@ def SSIM(img1, img2, K=np.array([0.01, 0.03]), wsize=11, mode='valid'):
 
 def blocking_diff(Ref_image, Pro_image):
     Yref = myUtilities.checkifRGB(Ref_image)
-    Ypro = myUtilities.checkifRGB(Ref_image)
+    Ypro = myUtilities.checkifRGB(Pro_image)
     D, _ = psnr(Ref_image, Pro_image)
     return D, myUtilities.blocking(Yref) - myUtilities.blocking(Ypro)
 
 
 def noise_diff(Ref_image, Pro_image):
     Yref = myUtilities.checkifRGB(Ref_image)
-    Ypro = myUtilities.checkifRGB(Ref_image)
+    Ypro = myUtilities.checkifRGB(Pro_image)
     _, (_, _, cDR) = pywt.dwt2(Yref, 'db1', 'sym')
     _, (_, _, cDP) = pywt.dwt2(Ypro, 'db1', 'sym')
     auxref, noise_ref = myUtilities.EstimateNoise_SBLE(cDR)
@@ -76,7 +76,7 @@ def noise_diff(Ref_image, Pro_image):
 
 def blur_diff(Ref_image, Pro_image):
     Yref = myUtilities.checkifRGB(Ref_image)
-    Ypro = myUtilities.checkifRGB(Ref_image)
+    Ypro = myUtilities.checkifRGB(Pro_image)
     dims = Yref.shape
     mask_perc = 10 # 5% or 10%
     mask_threshold = np.int(np.floor(dims[0]*dims[1]*mask_perc/100))
@@ -104,11 +104,11 @@ def blur_diff(Ref_image, Pro_image):
 
 def epsnr(Ref_image, Pro_image):
     Yref = myUtilities.checkifRGB(Ref_image)
-    Ypro = myUtilities.checkifRGB(Ref_image)
+    Ypro = myUtilities.checkifRGB(Pro_image)
     aux = np.asarray(np.empty(Yref.shape),dtype=np.float32)
     mask = np.asarray(np.empty(Yref.shape),dtype=np.bool)
     ndimage.filters.generic_gradient_magnitude(Yref, derivative=ndimage.filters.sobel, output=aux)
-    T = myUtilities.Isodata(aux)
+    T = myUtilities.medianThreshold(aux)
     np.greater_equal(aux, T, out=mask)
     np.subtract(Yref,Ypro,out=aux)
     np.square(aux,out=aux)

@@ -57,11 +57,11 @@ def load_file(MainWindow, type, message, multiple=False):
     return temp
 
 
-def get_time():
+def getTime():
     return strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 
-class popup_window_with_list(object):
+class popupWindowWithList(object):
     def on_changed(self, selection):
         (model, pathlist) = selection.get_selected_rows()
         self.list_items = []
@@ -123,7 +123,7 @@ class popup_window_with_list(object):
         self.hbox.pack_start(self.scrolledwindow, True, True, 0)
 
 
-class popup_window_with_text_input(object):
+class popupWindowWithTextInput(object):
     def on_click_me_clicked(self, button=None, widget=None):
         self.file_name = self.entry.get_text()
         self.window.destroy()
@@ -147,7 +147,7 @@ class popup_window_with_text_input(object):
         Gtk.main()
 
 
-class popup_window_with_bar_plot(object):
+class popupWindowWithBarPlot(object):
     def on_click_me_clicked(self, button=None, widget=None):
         self.window.destroy()
         Gtk.main_quit()
@@ -164,32 +164,28 @@ class popup_window_with_bar_plot(object):
         acorrs.tick_params(labelsize=16)
         p = []
         s = []
-        t = []
+        # t = []
         pd = []
         labels = []
         for ii in sorted(data):
             labels.append(ii.split('_')[0])
             p.append(data[ii][0])
             s.append(data[ii][1])
-            t.append(data[ii][2])
+            # t.append(data[ii][2])
             pd.append(data[ii][3])
-        width = np.round(6. / len(p), 3)
-        acorrs.bar(np.arange(len(p)) + 0 * width, p, width, color='r', label='Pearsonr')
-        acorrs.bar(np.arange(len(s)) + 1 * width, s, width, color='g', label='Spearmanr')
+        width = np.round(1. / len(p), 3)
+        acorrs.bar(np.arange(len(p)) + 0 * width, p, width, color='r', label='Pearson R')
+        acorrs.bar(np.arange(len(s)) + 1 * width, s, width, color='g', label='Spearman R')
+        acorrs.bar(np.arange(len(pd)) + 2 * width, pd, width, color='y', label='Distance R')
         # acorrs.bar(np.arange(len(t))+2*width, t, width, color='b',label='Kendall')
-        acorrs.bar(np.arange(len(pd)) + 2 * width, pd, width, color='y', label='Correlation distance')
         box = acorrs.get_position()
         acorrs.set_position([box.x0 - 0.065, box.y0 + 0.05, box.width - 0.05, box.height])
         acorrs.legend(framealpha=0.1, loc='center left', bbox_to_anchor=(1, 0.5))
-        acorrs.set_xticks(np.arange(len(p)) + 1.5 * width)
+        acorrs.set_xticks(np.arange(len(p)) + 1. * width)
         acorrs.set_xticklabels(labels)
         acorrs.grid(False)
         acorrs.set_ylim([0, 1])
-        acorrs.set_xlim([-0., len(p)+0.])
-        acorrs.plot([-0., len(p)+0.], [0.3, 0.3], 'gray', lw=3, ls=':')
-        acorrs.plot([-0., len(p)+0.], [0.5, 0.5], 'gray', lw=3, ls=':')
-        acorrs.plot([-0., len(p)+0.], [0.7, 0.7], 'gray', lw=3, ls=':')
-        acorrs.plot([-0., len(p)+0.], [0.9, 0.9], 'gray', lw=3, ls=':')
+        acorrs.set_xlim([-0.5, len(p)+0.])
         self.canvas = FigureCanvas(f)
         self.hbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.window.add(self.hbox)
@@ -206,7 +202,7 @@ class popup_window_with_bar_plot(object):
         Gtk.main()
 
 
-class popup_window_with_box_plot(object):
+class popupWindowWithBoxPlot(object):
     def on_click_me_clicked(self, button=None, widget=None):
         self.window.destroy()
         Gtk.main_quit()
@@ -220,39 +216,41 @@ class popup_window_with_box_plot(object):
         self.window.connect("destroy", self.on_click_me_clicked)
         p = []
         s = []
-        t = []
+        # t = []
         pd = []
         labels = []
         for ii in sorted(data):
             labels.append(ii.split('_')[0])
             p.append(data[ii][:, 0])
             s.append(data[ii][:, 1])
-            t.append(data[ii][:, 2])
+            # t.append(data[ii][:, 2])
             pd.append(data[ii][:, 3])
         self.p = np.transpose(np.asarray(p))
         self.s = np.transpose(np.asarray(s))
-        self.t = np.transpose(np.asarray(t))
+        # self.t = np.transpose(np.asarray(t))
         self.pd = np.transpose(np.asarray(pd))
         width = np.round(1. / (len(self.p[0, :]) - 1), 3)
         f = Figure()
         acorrs = f.add_subplot(111)
         acorrs.tick_params(labelsize=16)
-        acorrs.bar([0], [0], width, color='r', label='Pearsonr')
-        acorrs.bar([0], [0], width, color='g', label='Spearmanr')
+        acorrs.bar([0], [0], width, color='r', label='Pearson R')
+        acorrs.bar([0], [0], width, color='g', label='Spearman R')
+        acorrs.bar([0], [0], width, color='y', label='Distance R')
         # acorrs.bar([0], [0], width, color='b', label='Kendall')
-        acorrs.bar([0], [0], width, color='y', label='Correlation distance')
         acorrs.legend(framealpha=0.1, loc='center left', bbox_to_anchor=(1, 0.5))
-        acorrs.boxplot(np.abs(self.p), positions=np.arange(len(self.p[0, :])) + 0 * width, boxprops= \
-            dict(color='r', linewidth=3, markersize=12), widths=width)
-        acorrs.boxplot(np.abs(self.s), positions=np.arange(len(self.s[0, :])) + 1 * (width + 0.075), boxprops= \
-            dict(color='g', linewidth=3, markersize=12), widths=width)
+        acorrs.boxplot(np.abs(self.p), positions=np.arange(len(self.p[0, :])) + 0 * width,\
+                       boxprops=dict(color='r', linewidth=3, markersize=12), widths=width)
+        acorrs.boxplot(np.abs(self.s), positions=np.arange(len(self.s[0, :])) + 1 * (width + 0.075),\
+                       boxprops=dict(color='g', linewidth=3, markersize=12), widths=width)
+        acorrs.boxplot(np.abs(self.pd), positions=np.arange(len(self.pd[0, :])) + 2 * (width + 0.075),\
+                       boxprops=dict(color='y', linewidth=3, markersize=12), widths=width)
         # acorrs.boxplot(np.abs(self.t), positions=np.arange(len(self.t[0, :])) + 2 * width, boxprops =\
         # 	dict(color='b', linewidth=3, markersize=12), widths=width)
-        acorrs.boxplot(np.abs(self.pd), positions=np.arange(len(self.pd[0, :])) + 2 * (width + 0.075), boxprops= \
-            dict(color='y', linewidth=3, markersize=12), widths=width)
         box = acorrs.get_position()
         acorrs.set_position([box.x0 - 0.065, box.y0 + 0.05, box.width - 0.05, box.height])
-        acorrs.set_xticks(np.arange(len(self.p[0, :])) + 1.5 * width)
+        acorrs.set_xticks(np.arange(len(self.p[0, :])) + 1. * width)
+        acorrs.set_ylim([0, 1])
+        acorrs.set_xlim([-0.5, len(p) + 0.])
         acorrs.set_xticklabels(labels)
         self.canvas = FigureCanvas(f)
         self.hbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -270,31 +268,31 @@ class popup_window_with_box_plot(object):
         self.window.show_all()
         pvalue_p, pvalue_adj_p, Rj_p = myUtilities.multiple_comparisons(np.abs(self.p), type='F', ranks=True)
         pvalue_s, pvalue_adj_s, Rj_s = myUtilities.multiple_comparisons(np.abs(self.s), type='F', ranks=True)
-        pvalue_t, pvalue_adj_t, Rj_t = myUtilities.multiple_comparisons(np.abs(self.t), type='F', ranks=True)
         pvalue_pd, pvalue_adj_pd, Rj_pd = myUtilities.multiple_comparisons(np.abs(self.pd), type='F', ranks=True)
+        # pvalue_t, pvalue_adj_t, Rj_t = myUtilities.multiple_comparisons(np.abs(self.t), type='F', ranks=True)
         star_message = ''
         max_arg_p = np.argmin(Rj_p)
         max_arg_s = np.argmin(Rj_s)
-        max_arg_t = np.argmin(Rj_t)
         max_arg_pd = np.argmin(Rj_pd)
+        # max_arg_t = np.argmin(Rj_t)
         for ii in labels:
             star_message += ii + '\n'
-        message = create_p_values_string(pvalue_p, 'Pearsonr', star_message)
-        Object.print_message(message)
-        message = create_p_values_string(pvalue_s, 'Spearmanr', star_message)
-        Object.print_message(message)
-        message = create_p_values_string(pvalue_t, 'Kendalltau', star_message)
-        Object.print_message(message)
-        message = create_p_values_string(pvalue_pd, 'Correlation distance', star_message)
-        Object.print_message(message)
-        message = create_bestp_values_string(pvalue_p, 'Pearsonr', labels, max_arg_p)
-        Object.print_message(message)
-        message = create_bestp_values_string(pvalue_s, 'Spearmanr', labels, max_arg_s)
-        Object.print_message(message)
-        message = create_bestp_values_string(pvalue_t, 'Kendalltau', labels, max_arg_t)
-        Object.print_message(message)
-        message = create_bestp_values_string(pvalue_pd, 'Correlation distance', labels, max_arg_pd)
-        Object.print_message(message)
+        message = create_p_values_string(pvalue_p, 'Pearson R', star_message)
+        Object.printMessage(message)
+        message = create_p_values_string(pvalue_s, 'Spearman R', star_message)
+        Object.printMessage(message)
+        message = create_p_values_string(pvalue_pd, 'Distance R', star_message)
+        Object.printMessage(message)
+        # message = create_p_values_string(pvalue_t, 'Kendalltau', star_message)
+        # Object.printMessage(message)
+        message = create_bestp_values_string(pvalue_p, 'Pearson R', labels, max_arg_p)
+        Object.printMessage(message)
+        message = create_bestp_values_string(pvalue_s, 'Spearman R', labels, max_arg_s)
+        Object.printMessage(message)
+        message = create_bestp_values_string(pvalue_pd, 'Distance R', labels, max_arg_pd)
+        Object.printMessage(message)
+        # message = create_bestp_values_string(pvalue_t, 'Kendalltau', labels, max_arg_t)
+        # Object.printMessage(message)
         Gtk.main()
 
 
@@ -316,7 +314,7 @@ def create_bestp_values_string(pvalue, name, labels, max_arg_p):
     return message
 
 
-class popup_window_with_scatterplot(object):
+class popupWindowWithScatterPlot(object):
     def on_click_me_clicked(self, button=None, widget=None):
         self.window.destroy()
         Gtk.main_quit()
@@ -360,7 +358,7 @@ class popup_window_with_scatterplot(object):
         Gtk.main()
 
 
-class popup_window_with_scatterplot_regression(object):
+class popupWindowWithScatterPlotRegression(object):
     def on_click_me_clicked(self, button=None, widget=None):
         self.window.destroy()
         Gtk.main_quit()
@@ -482,7 +480,7 @@ class popup_window_with_box_plot_differences(object):
         Gtk.main()
 
 
-class popup_window_with_content_hist(object):
+class popupWindowWithContentHistogram(object):
     def on_click_me_clicked(self, button=None, widget=None):
         self.window.destroy()
         Gtk.main_quit()
@@ -496,7 +494,7 @@ class popup_window_with_content_hist(object):
         self.window.connect("destroy", self.on_click_me_clicked)
         f = Figure()
         histoplot = f.add_subplot(111)
-        histoplot.hist(np.asarray(data).ravel(), np.int_(np.sqrt(len(data))), histtype='bar', rwidth=1)
+        histoplot.hist(np.asarray(data).ravel(), np.int_(np.sqrt(len(data))), histtype='bar', rwidth=0.5)
         histoplot.tick_params(labelsize=16)
         box = histoplot.get_position()
         histoplot.set_position([box.x0 - 0.065, box.y0 + 0.05, box.width - 0.05, box.height])
@@ -513,7 +511,7 @@ class popup_window_with_content_hist(object):
         Gtk.main()
 
 
-class popup_window_with_parametermap(object):
+class popupWindowWithHeatParameterMap(object):
     def on_click_me_clicked(self, button=None, widget=None):
         self.window.destroy()
         Gtk.main_quit()
@@ -521,7 +519,7 @@ class popup_window_with_parametermap(object):
 
     def __init__(self, Object=None, data={}, name_axis=('a', 'b'), para_rangex=(0.0, 1), para_rangey=(0.0, 1), step=0.05):
         self.window = Gtk.Window()
-        self.window.set_title("iFAS - Performance in function of the parameters")
+        self.window.set_title("iFAS - Performance in function of parameters [Linear combination]")
         self.window.set_default_size(800, 500)
         self.window.connect("delete-event", self.on_click_me_clicked)
         self.window.connect("destroy", self.on_click_me_clicked)
@@ -529,47 +527,48 @@ class popup_window_with_parametermap(object):
         heatmapPCC = f.add_subplot(221)
         heatmapSROCC = f.add_subplot(222)
         heatmapCCD = f.add_subplot(223)
-        heatmaptau = f.add_subplot(224)
+        # heatmaptau = f.add_subplot(224)
         heatmapPCC.tick_params(labelsize=16)
         heatmapSROCC.tick_params(labelsize=16)
         heatmapCCD.tick_params(labelsize=16)
-        heatmaptau.tick_params(labelsize=16)
+        # heatmaptau.tick_params(labelsize=16)
         rangeparx = np.arange(para_rangex[0], para_rangex[1]+step, step)
         rangepary = np.arange(para_rangey[0], para_rangey[1]+step, step)
         Numx = len(rangeparx)
         Numy = len(rangepary)
         P = np.zeros((Numy, Numx))
         S = np.zeros((Numy, Numx))
-        T = np.zeros((Numy, Numx))
         PD = np.zeros((Numy, Numx))
+        T = np.zeros((Numy, Numx))
         for aa in range(Numy):
             for bb in range(Numx):
-                total = rangeparx[bb]*data[name_axis[0]]+rangepary[aa]*data[name_axis[1]]
+                total = rangeparx[bb] * data[name_axis[0]] + rangepary[aa] * data[name_axis[1]]
                 if not (aa == 0 and bb == 0):
-                    P[aa, bb], S[aa, bb], T[aa, bb], PD[aa, bb] = myUtilities.compute_1dcorrelatiosn(total, data['dmos'])
-        heatmapPCC.imshow(np.abs(P), extent=[para_rangex[0], para_rangex[1], para_rangey[0], para_rangey[1]], vmin=0., vmax=1.,\
-                       interpolation='none', aspect='equal', origin='lower')
-        heatmapSROCC.imshow(np.abs(S), extent=[para_rangex[0], para_rangex[1], para_rangey[0], para_rangey[1]], vmin=0., vmax=1., \
-                          interpolation='none', aspect='equal', origin='lower')
-        heatmapCCD.imshow(np.abs(PD), extent=[para_rangex[0], para_rangex[1], para_rangey[0], para_rangey[1]], vmin=0., vmax=1., \
-                          interpolation='none', aspect='equal', origin='lower')
-        axxes = heatmaptau.imshow(np.abs(T), extent=[para_rangex[0], para_rangex[1], para_rangey[0], para_rangey[1]], vmin=0., vmax=1., \
-                          interpolation='none', aspect='equal', origin='lower')
+                    P[aa, bb], S[aa, bb], T[aa, bb], PD[aa, bb] =\
+                        myUtilities.compute_1dcorrelatiosn(total, data[name_axis[2]])
+        heatmapPCC.imshow(np.abs(P), extent=[para_rangex[0], para_rangex[1], para_rangey[0], para_rangey[1]],\
+                          vmin=0., vmax=1., interpolation='none', aspect='equal', origin='lower', cmap='inferno')
+        heatmapSROCC.imshow(np.abs(S), extent=[para_rangex[0], para_rangex[1], para_rangey[0], para_rangey[1]],\
+                            vmin=0., vmax=1., interpolation='none', aspect='equal', origin='lower', cmap='inferno')
+        axxes = heatmapCCD.imshow(np.abs(PD), extent=[para_rangex[0], para_rangex[1], para_rangey[0], para_rangey[1]],\
+                          vmin=0., vmax=1., interpolation='none', aspect='equal', origin='lower', cmap='inferno')
+        # axxes = heatmaptau.imshow(np.abs(T), extent=[para_rangex[0], para_rangex[1], para_rangey[0], para_rangey[1]],\
+        #                           vmin=0., vmax=1., interpolation='none', aspect='equal', origin='lower', cmap='inferno')
         heatmapPCC.set_xlabel(name_axis[0], fontsize=16)
         heatmapPCC.set_ylabel(name_axis[1], fontsize=16)
         heatmapSROCC.set_xlabel(name_axis[0], fontsize=16)
         heatmapSROCC.set_ylabel(name_axis[1], fontsize=16)
         heatmapCCD.set_xlabel(name_axis[0], fontsize=16)
         heatmapCCD.set_ylabel(name_axis[1], fontsize=16)
-        heatmaptau.set_xlabel(name_axis[0], fontsize=16)
-        heatmaptau.set_ylabel(name_axis[1], fontsize=16)
+        # heatmaptau.set_xlabel(name_axis[0], fontsize=16)
+        # heatmaptau.set_ylabel(name_axis[1], fontsize=16)
         cax = f.add_axes([0.925, 0.1, 0.03, 0.8])
         cbar = f.colorbar(axxes, cax=cax)
         cbar.ax.tick_params(labelsize=16)
         heatmapPCC.set_title('PCC', fontsize=16)
         heatmapSROCC.set_title('SROCC', fontsize=16)
         heatmapCCD.set_title('CCD', fontsize=16)
-        heatmaptau.set_title('Tau', fontsize=16)
+        # heatmaptau.set_title('Tau', fontsize=16)
         #heatmapPCC.set_position([box.x0 - 0.065, box.y0 + 0.05, box.width - 0.05, box.height])
         self.canvas = FigureCanvas(f)
         self.hbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -587,7 +586,7 @@ class popup_window_with_parametermap(object):
         Gtk.main()
 
 
-class popup_window_with_scatterplot_wizard(object):
+class popupWindowWithScatterPlotWizard(object):
     def on_click_me_clicked(self, button=None, widget=None):
         self.window.destroy()
         Gtk.main_quit()
@@ -611,6 +610,8 @@ class popup_window_with_scatterplot_wizard(object):
             idx = np.where(data[:, 2] == ii)
             scplot.plot(data[idx, 0], data[idx, 1], color=colors[count, :], ls='None', \
                         marker='o', fillstyle='full', ms=10)
+            scplot.plot(data[idx[0], 0], data[idx[0], 1], color=colors[count, :], ls='None',\
+                        marker='o', fillstyle='full', ms=10, label=str(int(ii)))
             count += 1
         scplot.legend(framealpha=0.1, loc='center left', bbox_to_anchor=(1, 0.5))
         box = scplot.get_position()
@@ -633,7 +634,7 @@ class popup_window_with_scatterplot_wizard(object):
         Gtk.main()
 
 
-def create_menu_bar(Object):  # Only for iFAS
+def createMenuBar(Object):  # Only for iFAS
     place = Object.builder.get_object("hbox1")
     menubar = Gtk.MenuBar()
     menubar.set_hexpand(True)
@@ -643,6 +644,7 @@ def create_menu_bar(Object):  # Only for iFAS
     filemenu = Gtk.Menu()
     filem = Gtk.MenuItem("File")
     filem.set_submenu(filemenu)
+    filem.get_child().modify_font(Pango.FontDescription("Sans 12"))
 
     menubar.append(filem)
 
@@ -650,157 +652,190 @@ def create_menu_bar(Object):  # Only for iFAS
 
     nmportm = Gtk.MenuItem("New")
     nmportm.set_submenu(nmenu)
+    nmportm.get_child().modify_font(Pango.FontDescription("Sans 12"))
 
     smenu = Gtk.Menu()
 
-    nsingle = Gtk.MenuItem("Single source")
+    nsingle = Gtk.MenuItem("Single reference")
     nsingle.set_submenu(smenu)
-    ssingle = Gtk.MenuItem("Single sample")
-    ssingle.connect("activate", Object.single_sample_analysis)
-    smultiple = Gtk.MenuItem("Multiple sample")
-    smultiple.connect("activate", Object.on_click_single_multiple)
+    nsingle.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    ssingle = Gtk.MenuItem("Single processed")
+    ssingle.connect("activate", Object.singleRefsinglePro)
+    ssingle.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    smultiple = Gtk.MenuItem("Multiple processed")
+    smultiple.connect("activate", Object.singleRefmultiplePro)
+    smultiple.get_child().modify_font(Pango.FontDescription("Sans 12"))
     smenu.append(ssingle)
     smenu.append(smultiple)
 
-    nmultiple = Gtk.MenuItem("Multiple source - Multiple sample")
-    nmultiple.connect("activate", Object.on_click_multiple_source)
+    nmultiple = Gtk.MenuItem("Multiple reference - Multiple processed")
+    nmultiple.connect("activate", Object.multipleRefmultiplePro)
+    nmultiple.get_child().modify_font(Pango.FontDescription("Sans 12"))
     nmenu.append(nsingle)
     nmenu.append(nmultiple)
 
     filemenu.append(nmportm)
 
-    load = Gtk.MenuItem("Load")
-    load.connect("activate", Object.on_load_click)
+    load = Gtk.MenuItem("Load data")
+    load.connect("activate", Object.onLoadData)
+    load.get_child().modify_font(Pango.FontDescription("Sans 12"))
     filemenu.append(load)
 
-    save = Gtk.MenuItem("Save")
-    save.connect("activate", Object.on_save_click)
+    save = Gtk.MenuItem("Save data")
+    save.connect("activate", Object.onSaveData)
+    save.get_child().modify_font(Pango.FontDescription("Sans 12"))
     filemenu.append(save)
+
+    mos = Gtk.MenuItem("Load precomputed data")
+    mos.connect("activate", Object.addPrecomputedMeasure)
+    mos.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    filemenu.append(mos)
 
     exit = Gtk.MenuItem("Quit")
     exit.connect("activate", Gtk.main_quit)
+    exit.get_child().modify_font(Pango.FontDescription("Sans 12"))
     filemenu.append(exit)
 
     # Display menu
     dispmenu = Gtk.Menu()
     dispm = Gtk.MenuItem("Display")
     dispm.set_submenu(dispmenu)
+    dispm.get_child().modify_font(Pango.FontDescription("Sans 12"))
 
-    menubar.append(dispm)
-
-    idmportm = Gtk.MenuItem("Image difference")
-    idmportm.connect("activate", Object.on_id_measures_click)
-    timportm = Gtk.MenuItem("Test image")
-    timportm.connect("activate", Object.on_ti_measures_click)
-    pmenu = Gtk.Menu()
-
-    plots = Gtk.MenuItem("Plots")
-    plots.set_submenu(pmenu)
-    MxMy = Gtk.MenuItem("Mx Vs My")
-    MxMy.connect("activate", Object.on_mx_my_plot_click)
-    MxMyall = Gtk.MenuItem("Mx Vs My all data")
-    MxMyall.connect("activate", Object.on_scatterplot_click)
-    wizard = Gtk.MenuItem("Wizard: Multiple distortion")
-    wizard.connect("activate", Object.on_multiple_plot)
-    pmenu.append(MxMy)
-    pmenu.append(MxMyall)
-    pmenu.append(wizard)
+    idmportm = Gtk.MenuItem("Difference map")
+    idmportm.connect("activate", Object.onChangeDiffMap)
+    idmportm.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    timportm = Gtk.MenuItem("Change display images")
+    timportm.connect("activate", Object.onImageSetChanged)
+    timportm.get_child().modify_font(Pango.FontDescription("Sans 12"))
 
     dispmenu.append(idmportm)
     dispmenu.append(timportm)
-    dispmenu.append(plots)
 
-    # Tools menu
-    toolmenu = Gtk.Menu()
-    toolsm = Gtk.MenuItem("Tools")
-    toolsm.set_submenu(toolmenu)
+    menubar.append(dispm)
 
-    menubar.append(toolsm)
+    # Plots menu
+    plotmenu = Gtk.Menu()
+    plots = Gtk.MenuItem("Plots")
+    plots.set_submenu(plotmenu)
+    plots.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    MxMy = Gtk.MenuItem("Mx Vs My")
+    MxMy.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    MxMy.connect("activate", Object.plotXmeasureYmeasure)
+    MxMyall = Gtk.MenuItem("Mx Vs My [full data]")
+    MxMyall.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    MxMyall.connect("activate", Object.onScatterPlot)
+    wizard = Gtk.MenuItem("Wizard: Multiple distortion")
+    wizard.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    wizard.connect("activate", Object.onMultipleDistortionPlot)
+    plotmenu.append(MxMy)
+    plotmenu.append(MxMyall)
+    plotmenu.append(wizard)
+    menubar.append(plots)
 
-    mmportm = Gtk.MenuItem("Fidelity measures")
-    mmportm.connect("activate", Object.on_fid_measures_click)
-
-    gmportm = Gtk.MenuItem("Fidelity groups")
-    gmportm.connect("activate", Object.on_fid_groups_click)
-    addmenu = Gtk.Menu()
-
-    amenu = Gtk.MenuItem("Add")
-    amenu.set_submenu(addmenu)
-    mos = Gtk.MenuItem("Add MOS or precomputed measure from file")
-    mos.connect("activate", Object.on_add_mos_click)
-    addfg = Gtk.MenuItem("Add New Fidelity Group")
-    addfg.connect("activate", Object.on_add_nfg_click)
-    addmenu.append(mos)
-    addmenu.append(addfg)
-
+    # correlation analysis
     corranal = Gtk.Menu()
     cmenu = Gtk.MenuItem("Correlation analysis")
+    cmenu.get_child().modify_font(Pango.FontDescription("Sans 12"))
     cmenu.set_submenu(corranal)
-    barplot = Gtk.MenuItem("Global correlation bar plot")
-    barplot.connect("activate", Object.on_barplot_click)
-    boxplot = Gtk.MenuItem("Correlation per source box plot")
-    boxplot.connect("activate", Object.on_boxplot_click)
-    heatmap = Gtk.MenuItem("Heatmap correlation for feature combination")
-    heatmap.connect("activate", Object.on_heatmap_click)
+    barplot = Gtk.MenuItem("Global bar plot")
+    barplot.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    barplot.connect("activate", Object.globalCorrelationBarPlot)
+    boxplot = Gtk.MenuItem("Per source box plot")
+    boxplot.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    boxplot.connect("activate", Object.boxPlotxReference)
+    heatmap = Gtk.MenuItem("Heat map to combine features")
+    heatmap.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    heatmap.connect("activate", Object.onHeatMap)
     corranal.append(barplot)
     corranal.append(boxplot)
     corranal.append(heatmap)
+    menubar.append(cmenu)
 
+    # regression analysis
     reganal = Gtk.Menu()
     rmenu = Gtk.MenuItem("Regression analysis")
+    rmenu.get_child().modify_font(Pango.FontDescription("Sans 12"))
     rmenu.set_submenu(reganal)
     linear = Gtk.MenuItem("Linear")
-    linear.connect("activate", Object.on_regression_click, 'linear')
+    linear.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    linear.connect("activate", Object.onRegression, 'linear')
     quad = Gtk.MenuItem("Quadratic")
-    quad.connect("activate", Object.on_regression_click, 'quadratic')
+    quad.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    quad.connect("activate", Object.onRegression, 'quadratic')
     cubic = Gtk.MenuItem("Cubic")
-    cubic.connect("activate", Object.on_regression_click, 'cubic')
+    cubic.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    cubic.connect("activate", Object.onRegression, 'cubic')
     expo = Gtk.MenuItem("Exponential")
-    expo.connect("activate", Object.on_regression_click, 'exponential')
+    expo.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    expo.connect("activate", Object.onRegression, 'exponential')
     logis = Gtk.MenuItem("Logistic")
-    logis.connect("activate", Object.on_regression_click, 'logistic')
+    logis.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    logis.connect("activate", Object.onRegression, 'logistic')
     cerro = Gtk.MenuItem("Complementary error")
-    cerro.connect("activate", Object.on_regression_click, 'complementary_error')
+    cerro.get_child().modify_font(Pango.FontDescription("Sans 12"))
+    cerro.connect("activate", Object.onRegression, 'complementaryError')
     reganal.append(linear)
     reganal.append(quad)
     reganal.append(cubic)
     reganal.append(expo)
     reganal.append(logis)
     reganal.append(cerro)
+    menubar.append(rmenu)
 
-    diffanal = Gtk.Menu()
-    dmenu = Gtk.MenuItem("Differences analysis")
-    dmenu.set_submenu(diffanal)
-    boxplot = Gtk.MenuItem("Box plot of the differences per reference")
-    boxplot.connect("activate", Object.on_boxplot_diff_click)
-    diffanal.append(boxplot)
 
-    contanal = Gtk.Menu()
-    comenu = Gtk.MenuItem("Content analysis")
-    comenu.set_submenu(contanal)
-    conthist = Gtk.MenuItem("Histogram of content features per source")
-    conthist.connect("activate", Object.on_hist_content_features)
-    contanal.append(conthist)
+    # Tools menu
+    toolmenu = Gtk.Menu()
+    toolsm = Gtk.MenuItem("Tools")
+    toolsm.set_submenu(toolmenu)
+    toolsm.get_child().modify_font(Pango.FontDescription("Sans 12"))
 
-    toolmenu.append(mmportm)
-    toolmenu.append(gmportm)
-    toolmenu.append(amenu)
-    toolmenu.append(cmenu)
-    toolmenu.append(rmenu)
-    toolmenu.append(dmenu)
-    toolmenu.append(comenu)
+    conthist = Gtk.MenuItem("Content features per source")
+    conthist.connect("activate", Object.histogramContentFeatures)
+    conthist.get_child().modify_font(Pango.FontDescription("Sans 12"))
+
+    toolmenu.append(conthist)
+
+    menubar.append(toolsm)
+
+    # Package management
+    managemenu = Gtk.Menu()
+    manamenu = Gtk.MenuItem("Manage packages")
+    manamenu.set_submenu(managemenu)
+    manamenu.get_child().modify_font(Pango.FontDescription("Sans 12"))
+
+    addfg = Gtk.MenuItem("Add package")
+    addfg.connect("activate", Object.addNewPythonScript)
+    addfg.get_child().modify_font(Pango.FontDescription("Sans 12"))
+
+    mmportm = Gtk.MenuItem("Available measures")
+    mmportm.connect("activate", Object.onSelectMeasures)
+    mmportm.get_child().modify_font(Pango.FontDescription("Sans 12"))
+
+    gmportm = Gtk.MenuItem("Available packages")
+    gmportm.connect("activate", Object.onSelectPackage)
+    gmportm.get_child().modify_font(Pango.FontDescription("Sans 12"))
+
+    managemenu.append(addfg)
+    managemenu.append(mmportm)
+    managemenu.append(gmportm)
+    menubar.append(manamenu)
 
     # Help menu
     helpmenu = Gtk.Menu()
     helpm = Gtk.MenuItem("Help")
     helpm.set_submenu(helpmenu)
+    helpm.get_child().modify_font(Pango.FontDescription("Sans 12"))
 
     guide = Gtk.MenuItem("Guide")
-    guide.connect("activate", Object.on_guide_click)
+    guide.connect("activate", Object.onGuideClicked)
+    guide.get_child().modify_font(Pango.FontDescription("Sans 12"))
     about = Gtk.MenuItem("About")
-    about.connect("activate", Object.on_about_click)
+    about.connect("activate", Object.onAboutClick)
+    about.get_child().modify_font(Pango.FontDescription("Sans 12"))
     screenupdate = Gtk.MenuItem("Refresh screen")
-    screenupdate.connect("activate", Object.update_screen_size)
+    screenupdate.connect("activate", Object.updateScreenSize)
+    screenupdate.get_child().modify_font(Pango.FontDescription("Sans 12"))
     helpmenu.append(guide)
     helpmenu.append(about)
     helpmenu.append(screenupdate)

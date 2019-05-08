@@ -176,11 +176,6 @@ def contrast_rizzi(img):
     A = Yref
     C_total = C[0]
     for ii in range(1, Numfilters + 1):
-        # sigma = 2. ** (ii-1)
-        # xymax = np.maximum(np.abs(nstds * sigma), np.abs(nstds * sigma))
-        # xx, yy = np.meshgrid(np.arange(-xymax, xymax + 1), np.arange(-xymax, xymax + 1))
-        # g = gaussian(xx, yy, sigma)
-        # A = signal.convolve2d(A, np.rot90(g, 2), mode='same')
         A = A[0::2, 0::2]
         C[ii] = cythonFunctions.crm_convolution(A, 3)
         cglobal += np.mean(C[ii])

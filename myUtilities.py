@@ -11,6 +11,22 @@ from skimage import color
 from matplotlib.figure import Figure
 
 
+def conver2String(name, data, methods):
+    strOut = ''
+    for ii in range(len(methods)):
+        strOut += '\n' + methods[ii] + ':\n'
+        for jj in range(len(name[ii])):
+            strOut += name[ii][jj].split('/')[-1] + "\t%.5f" % data[ii][jj] + '\n'
+    return strOut
+
+
+def medianThreshold(img, stdfact=4.4478):
+    M = np.median(img)
+    Ms = np.median(np.abs(img - M))
+    th = M + stdfact * Ms
+    return th
+
+
 def formatTime(time_seconds):
     h = time_seconds / 3600.
     m = 60. * (h - int(h))
