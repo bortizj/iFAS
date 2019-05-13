@@ -61,9 +61,10 @@ class Main(object):
         self.selectedRefFile = self.workingPath + '/sample_images/test_ref_0.bmp'
         self.selectedProFile = self.workingPath + '/sample_images/test_pro_0.bmp'
         self.listReferenceFiles = [self.selectedRefFile]
-        self.setImages = dict()
-        self.setImages[self.selectedRefFile] = imageSample.ImageSet(self.selectedRefFile, [self.selectedProFile],\
-                                                                    self.selectedPackage, self.listSelectedMethods)
+        self.listProcessedFiles = dict([(self.selectedRefFile, [self.selectedProFile])])
+        self.setData = imageSample.DataSet(self.listReferenceFiles, self.listProcessedFiles,\
+                                           self.selectedPackage, self.listSelectedMethods)
+        self.setImages = self.setData.data[self.selectedRefFile]
         # Setting up UI
 
         # Getting Window started with glade (See .glade File)
@@ -236,11 +237,12 @@ class Main(object):
 
     # Saving temporary image files to be displayed on the canvas
     def saveTempFiles(self):
-        image = self.setImages[self.selectedRefFile].imageReference
+        self.setImages = self.setData.data[self.selectedRefFile]
+        image = self.setImages.imageReference
         misc.imsave('/tmp/temp_ref.png', image)
-        image = self.setImages[self.selectedRefFile].imageProcessed
+        image = self.setImages.imageProcessed
         misc.imsave('/tmp/temp_pro.png', image)
-        image = self.setImages[self.selectedRefFile].imageDifference
+        image = self.setImages.imageDifference
         cmap = plt.get_cmap('jet')
         if np.max(image) != np.min(image):
             image = (np.double(image) - np.min(image)) / (np.max(image) - np.min(image))
@@ -281,29 +283,20 @@ class Main(object):
         self.selectedRefFile = self.workingPath + '/sample_images/test_ref_0.bmp'
         self.selectedProFile = self.workingPath + '/sample_images/test_pro_0.bmp'
         self.listReferenceFiles = [self.selectedRefFile]
-        self.setImages = dict()
-        self.setImages[self.selectedRefFile] = imageSample.ImageSet(self.selectedRefFile, [self.selectedProFile], \
-                                                                    self.selectedPackage, self.listSelectedMethods)
+        self.listProcessedFiles = dict([(self.selectedRefFile, [self.selectedProFile])])
+        self.setData = imageSample.DataSet(self.listReferenceFiles, self.listProcessedFiles, \
+                                           self.selectedPackage, self.listSelectedMethods)
+        self.setImages = self.setData.data[self.selectedRefFile]
         message = 'Returning to default parameters'
         self.printMessage(message)
         self.updateData()
         self.updateImages()
 
     def updateData(self):
-        count = 1
-        for ii in self.listReferenceFiles:
-            self.setImages[ii].changeMeasures(self.selectedPackage, self.listSelectedMethods)
-            self.statusBar.set_value(100. * count / len(self.listReferenceFiles))
-            count += 1
+        self.setData.computeData()
 
     def data2String(self):
-        str2Print = ''
-        for ii in self.listReferenceFiles:
-            str2Print += ii.split('/')[-1] + '\n'
-            name, data = self.setImages[ii].returnVector()
-            strOut = myUtilities.conver2String(name, data, self.listSelectedMethods)
-            str2Print += strOut
-        return str2Print
+        return self.setData.data2String()
 
     # Changing the list of methods
     def onSelectMeasures(self, button=None, doCompute=True):
@@ -317,8 +310,8 @@ class Main(object):
         if doCompute:
             self.updateData()
             str2Print = self.data2String()
-            self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure + '\n' +\
-                              str2Print)
+            self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
+                              '\n' + str2Print)
             self.updateImages()
 
     # Changing the package
@@ -350,11 +343,10 @@ class Main(object):
         if not self.currentMeasure:
             self.returnDefault()
         else:
-            for ii in self.listReferenceFiles:
-                self.setImages[ii].changeDifferenceImage(self.currentMeasure)
+            self.setData.changeDiffMap(self.currentMeasure)
         str2Print = self.data2String()
-        self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure + '\n' + \
-                          str2Print)
+        self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
+                          '\n' + str2Print)
         self.updateImages()
 
     # Changing the displaying image
@@ -379,7 +371,8 @@ class Main(object):
                 self.selectedRefFile = previousFile
                 self.printMessage("Error finding Reference. Returning to: " + previousFile.split('/')[-1])
         previousFile = self.selectedProFile
-        listFiles = self.setImages[self.selectedRefFile].returnListProcessed()
+        self.setImages = self.setData.data[self.selectedRefFile]
+        listFiles = self.setImages.returnListProcessed()
         popwin = myWidgets.popupWindowWithList(listFiles, sel_method=Gtk.SelectionMode.SINGLE, split_=True,\
                                                message="Processed images")
         self.selectedProFile = popwin.list_items
@@ -398,8 +391,7 @@ class Main(object):
             else:
                 self.selectedProFile = previousFile
                 self.printMessage("Error finding selection. Returning to sample: " + previousFile.split('/')[-1])
-        for ii in self.listReferenceFiles:
-            self.setImages[ii].changeProcessedImage(self.selectedProFile)
+        self.setData.changeProcessedImage(self.selectedRefFile, self.selectedProFile)
         self.updateImages()
         # TODO modify to clear plot place
 
@@ -413,13 +405,13 @@ class Main(object):
         if self.selectedRefFile and self.selectedProFile:
             self.listReferenceFiles = [self.selectedRefFile]
             self.currentMeasure = self.listSelectedMethods[0]
-            self.setImages = dict()
-            self.setImages[self.selectedRefFile] = imageSample.ImageSet(self.selectedRefFile, [self.selectedProFile], \
-                                                                    self.selectedPackage, self.listSelectedMethods)
+            self.listProcessedFiles = dict([(self.selectedRefFile, [self.selectedProFile])])
+            self.setData = imageSample.DataSet(self.listReferenceFiles, self.listProcessedFiles, \
+                                               self.selectedPackage, self.listSelectedMethods)
             self.updateImages()
             str2Print = self.data2String()
-            self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure + '\n' + \
-                          str2Print)
+            self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
+                              '\n' + str2Print)
             self.printMessage("Process Finished!")
         else:
             self.returnDefault()
@@ -435,9 +427,9 @@ class Main(object):
             self.listReferenceFiles = [self.selectedRefFile]
             self.currentMeasure = self.listSelectedMethods[0]
             self.selectedProFile = processedFiles[0]
-            self.setImages = dict()
-            self.setImages[self.selectedRefFile] = imageSample.ImageSet(self.selectedRefFile, processedFiles,\
-                                                                        self.selectedPackage, self.listSelectedMethods)
+            self.listProcessedFiles = dict([(self.selectedRefFile, processedFiles)])
+            self.setData = imageSample.DataSet(self.listReferenceFiles, self.listProcessedFiles, \
+                                               self.selectedPackage, self.listSelectedMethods)
             self.updateImages()
             str2Print = self.data2String()
             self.printMessage(
@@ -450,12 +442,14 @@ class Main(object):
     # Computing multiple reference multiple processed image fidelity using the selected measures
     def multipleRefmultiplePro(self, button=None):
         self.returnDefault()
+        self.printMessage('Computing your data!\nThis could take a while depending of your data size.')
         self.onSelectPackage(doCompute=False)
         self.onSelectMeasures(doCompute=False)
         pythonFile = myWidgets.load_file(self.window, 'txt', 'Select your .py file')
         if pythonFile:
             try:
                 path2Files, listReferences, dataSet = imp.load_source('module.name', pythonFile).myDataBase()
+                path2Files = '/'.join(pythonFile.split('/')[:-1]) + path2Files
             except SyntaxError:
                 self.printMessage('File Syntax corrupted. Please verify your file!')
                 self.returnDefault()
@@ -463,20 +457,18 @@ class Main(object):
         else:
             self.returnDefault()
             return
+        self.listProcessedFiles = dict()
         self.listReferenceFiles = []
-        self.setImages = dict()
         for ii in listReferences:
             self.listReferenceFiles.append(path2Files + ii)
-            processedFiles = []
+            self.listProcessedFiles[path2Files + ii] = []
             for jj in dataSet[ii]:
-                processedFiles.append(path2Files + jj)
-            self.setImages[path2Files + ii] = imageSample.ImageSet(path2Files + ii, processedFiles,\
-                                                                   self.selectedPackage, self.listSelectedMethods)
-            while Gtk.events_pending():
-                Gtk.main_iteration()
+                self.listProcessedFiles[path2Files + ii].append(path2Files + jj)
+        self.setData = imageSample.DataSet(self.listReferenceFiles, self.listProcessedFiles, \
+                                           self.selectedPackage, self.listSelectedMethods)
         self.currentMeasure = self.listSelectedMethods[0]
-        self.selectedRefFile = path2Files + listReferences[0]
-        self.selectedProFile = path2Files + processedFiles[0]
+        self.selectedRefFile = self.listReferenceFiles[0]
+        self.selectedProFile = self.listProcessedFiles[self.selectedRefFile][0]
         self.updateImages()
         str2Print = self.data2String()
         self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure + '\n' + \
@@ -488,7 +480,7 @@ class Main(object):
         popwin = myWidgets.popupWindowWithTextInput('Name your file: ')
         with open(self.workingPath + '/' + popwin.file_name + '.iFAS', 'w') as f:
             pickle.dump([self.selectedPackage, self.listAvailableMethods, self.listSelectedMethods, self.currentMeasure,\
-                         self.listReferenceFiles, self.selectedRefFile, self.selectedProFile, self.setImages], f)
+                         self.listReferenceFiles, self.selectedRefFile, self.selectedProFile, self.setData], f)
         self.printMessage("Save completed!")
 
     # Load precomputed data
@@ -497,7 +489,7 @@ class Main(object):
         try:
             with open(temp) as f:
                 self.selectedPackage, self.listAvailableMethods, self.listSelectedMethods, self.currentMeasure,\
-                self.listReferenceFiles, self.selectedRefFile, self.selectedProFile, self.setImages = pickle.load(f)
+                self.listReferenceFiles, self.selectedRefFile, self.selectedProFile, self.setData = pickle.load(f)
             self.xAxis = self.currentMeasure
             self.yAxis = self.currentMeasure
             self.updateImages()
@@ -512,8 +504,9 @@ class Main(object):
 
     # Plotting data on UI for current reference ImageSet
     def plotCurrentSelection(self):
-        _, xAxisValues = self.setImages[self.selectedRefFile].returnVector(measure=self.xAxis)
-        _, yAxisValues = self.setImages[self.selectedRefFile].returnVector(measure=self.yAxis)
+        self.setImages = self.setData.data[self.selectedRefFile]
+        _, xAxisValues = self.setImages.returnVector(measure=self.xAxis)
+        _, yAxisValues = self.setImages.returnVector(measure=self.yAxis)
         self.plotAxis.set_data(xAxisValues, yAxisValues)
         self.axis.set_xlim([np.min(xAxisValues) - 0.05 * np.min(xAxisValues), \
                             np.max(xAxisValues) + 0.05 * np.max(xAxisValues)])
@@ -554,11 +547,7 @@ class Main(object):
         popwin = myWidgets.popupWindowWithList(self.listSelectedMethods, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="Y axis measure")
         yAxis = popwin.list_items
-        Data = {}
-        for ii in self.listReferenceFiles:
-            _, xAxisValues = self.setImages[ii].returnVector(measure=xAxis)
-            _, yAxisValues = self.setImages[ii].returnVector(measure=yAxis)
-            Data[ii.split('/')[-1]] = np.hstack((xAxisValues, yAxisValues))
+        Data = self.setData.getDictTableperRef(xAxis, yAxis)
         _ = myWidgets.popupWindowWithScatterPlot(self, Data, (xAxis, yAxis))
 
     # Plotting Multiple distortion types according to selected by user
@@ -568,11 +557,7 @@ class Main(object):
             self.printMessage(popwin.file_name + " is not integer!")
             return
         Ndistortions = int(popwin.file_name)
-        listProcessedFiles = []
-        for ii in sorted(self.listReferenceFiles):
-            subList = self.setImages[ii].returnListProcessed()
-            for jj in sorted(subList):
-                listProcessedFiles.append(jj)
+        listProcessedFiles = self.setData.getListProcessed()
         listDistortions = []
         for ii in range(Ndistortions):
             popwin = myWidgets.popupWindowWithList(sorted(listProcessedFiles, key=lambda s: s[-9:-1]),\
@@ -585,36 +570,15 @@ class Main(object):
         popwin = myWidgets.popupWindowWithList(self.listSelectedMethods, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="Y axis")
         yAxis = popwin.list_items
-        Data = []
-        for ii in self.listReferenceFiles:
-            for jj in self.setImages[ii].returnListProcessed():
-                for kk in range(Ndistortions):
-                    for ll in listDistortions[kk]:
-                        if ll in jj:
-                            xValue = self.setImages[ii].returnValueProcessed(xAxis, jj)[0]
-                            yValue = self.setImages[ii].returnValueProcessed(yAxis, jj)[0]
-                            Data.append([xValue, yValue, kk])
+        Data = self.setData.getDataLabel(Ndistortions, listDistortions, xAxis, yAxis)
         _ = myWidgets.popupWindowWithScatterPlotWizard(self, np.array(Data), (xAxis, yAxis))
 
     # Adds precomputed measure. Name scores is reserved for human scores
     def addPrecomputedMeasure(self, button=None):
         temp = myWidgets.load_file(self.window, 'txt', 'Select your measure file')
         if temp:
-            popwin = myWidgets.popupWindowWithTextInput('Name your measure [name it \'human\' for subjective scores]: ')
-            for ii in self.listReferenceFiles:
-                listProcessed = self.setImages[ii].returnListProcessed()
-                data = np.nan * np.ones((len(listProcessed), 1))
-                with open(temp) as f:
-                    for line in f:
-                        temp_string = line.split()
-                        if temp_string[0] in ii:
-                            for jj in range(len(listProcessed)):
-                                if temp_string[1] in listProcessed[jj]:
-                                    data[jj] = float(temp_string[2])
-                    if np.any(np.isnan(data)):
-                        self.printMessage(str(int(np.sum(np.isnan(data)))) + ' images not found. Verify your file.')
-                    else:
-                        self.setImages[ii].addPrecomputedData(popwin.file_name, data)
+            popwin = myWidgets.popupWindowWithTextInput('Name your measure [name it \'human\'\nfor subjective scores]: ')
+            self.setData.setPrecomputedData(temp, popwin.file_name)
             if not (popwin.file_name in self.listSelectedMethods):
                 self.listSelectedMethods.append(popwin.file_name)
             self.printMessage("File " + temp + " loaded.")
@@ -634,13 +598,7 @@ class Main(object):
         correlations = {}
         for ii in self.listSelectedMethods:
             if ii != 'human':
-                Data = []
-                for jj in self.listReferenceFiles:
-                    for kk in self.setImages[jj].returnListProcessed():
-                        xValue = self.setImages[jj].returnValueProcessed(ii, kk)[0]
-                        yValue = self.setImages[jj].returnValueProcessed('human', kk)[0]
-                        Data.append([xValue, yValue])
-                Data = np.asarray(Data)
+                Data = self.setData.getDataMatrix(ii, 'human')
                 p, s, t, pd = myUtilities.compute_1dcorrelatiosn(Data[:, 0], Data[:, 1])
                 correlations[ii] = np.abs(np.asarray([p, s, t, pd]))
                 self.printMessage(ii + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + 'Spearman R: ' + "%.5f" % s \
@@ -678,10 +636,7 @@ class Main(object):
             if ii != 'human':
                 correlations[ii] = []
                 for jj in self.listReferenceFiles:
-                    _, xValues = self.setImages[jj].returnVector(measure=ii)
-                    _, yValues = self.setImages[jj].returnVector(measure='human')
-                    Data = np.hstack((xValues, yValues))
-                    Data = np.asarray(Data)
+                    Data = self.setData.getDataMatrixReference(ii, 'human', jj)
                     p, s, t, pd = myUtilities.compute_1dcorrelatiosn(Data[:, 0], Data[:, 1])
                     correlations[ii].append([p, s, t, pd])
                     self.printMessage(ii + '\n' + jj.split('/')[-1] + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
@@ -702,11 +657,11 @@ class Main(object):
             listContentFeatures.append(listContentFunctions[ii][0])
         popwin = myWidgets.popupWindowWithList(listContentFeatures, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="Content features")
+        self.setData.computeContentFeatures(contentFeatures, [popwin.list_items])
         Data = []
         Data_names = []
         for ii in self.listReferenceFiles:
-            self.setImages[ii].computeContentFeatures(contentFeatures, [popwin.list_items])
-            Data.append(self.setImages[ii].contentFeatures[popwin.list_items])
+            Data.append(self.setData.getContentFeature(popwin.list_items, ii))
             Data_names.append(ii.split('/')[-1])
         _ = myWidgets.popupWindowWithContentHistogram(Object=self, data=Data)
 
@@ -724,64 +679,26 @@ class Main(object):
         popwin = myWidgets.popupWindowWithList(self.listSelectedMethods, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="Dependent variable [y-axis]")
         yAxis = popwin.list_items
-        x = []
-        y = []
+        TrainList = []
+        TestList = []
         for ii in listTrain:
             for jj in self.listReferenceFiles:
                 if ii in jj:
-                    _, xValues = self.setImages[jj].returnVector(measure=xAxis)
-                    _, yValues = self.setImages[jj].returnVector(measure=yAxis)
-                    x += xValues.T.tolist()[0]
-                    y += yValues.T.tolist()[0]
-        x = np.array(x)
-        y = np.array(y)
-        aopt = optimizationTools.optimize_function(x, y, fun_type=data)
-        y_est = optimizationTools.gen_data(x, aopt, fun_type=data)
+                    TrainList.append(jj)
+        for ii in listTest:
+            for jj in self.listReferenceFiles:
+                if ii in jj:
+                    TestList.append(jj)
+        aopt, [p, s, t, pd], [p0, s0, t0, pd0] = self.setData.regressionModel(TrainList, TestList, xAxis, yAxis, data)
         messagea = ''
         for ii in range(len(aopt)):
             messagea += 'a' + str(ii) + ": %.5f" % aopt[ii] + '\n'
         self.printMessage("The optimal parameters for function\n" + optimizationTools.fun_text(data) + "\n" + messagea)
-        p, s, t, pd = myUtilities.compute_1dcorrelatiosn(y, y_est)
         self.printMessage('Training values: ' + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
-                           'Spearman R: ' + "%.5f" % s + '\n' + 'Distance R: ' + "%.5f" % pd)
-        # self.print_message('Training values: ' + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
-        #                    'Spearman R: ' + "%.5f" % s + '\n' + 'Kendall t: ' + "%.5f" % t + '\n' + \
-        #                    'Distance R: ' + "%.5f" % pd)
-        xTest = []
-        yTest = []
-        for ii in listTest:
-            for jj in self.listReferenceFiles:
-                if ii in jj:
-                    _, xValues = self.setImages[jj].returnVector(measure=xAxis)
-                    _, yValues = self.setImages[jj].returnVector(measure=yAxis)
-                    xTest += xValues.T.tolist()[0]
-                    yTest += yValues.T.tolist()[0]
-        x_test = np.array(xTest)
-        y_test = np.array(yTest)
-        y_est_test = optimizationTools.gen_data(x_test, aopt, fun_type=data)
-        p, s, t, pd = myUtilities.compute_1dcorrelatiosn(y_test, y_est_test)
-        self.printMessage('Testing values: ' + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
                           'Spearman R: ' + "%.5f" % s + '\n' + 'Distance R: ' + "%.5f" % pd)
-        # self.print_message('Testing values: ' + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
-        #                    'Spearman R: ' + "%.5f" % s + '\n' + 'Kendall t: ' + "%.5f" % t + '\n' + \
-        #                    'Distance R: ' + "%.5f" % pd)
-        data_to_plot = {}
-        xfull = np.linspace(np.minimum(np.min(x), np.min(x_test)), np.maximum(np.max(x), np.max(x_test)), 100)
-        # Regression line data
-        data_to_plot['rl'] = np.transpose(np.vstack((xfull, optimizationTools.gen_data(xfull, aopt, fun_type=data))))
-        # Train data
-        data_to_plot['t'] = np.transpose(np.vstack((x, y)))
-        # Test data
-        data_to_plot['s'] = np.transpose(np.vstack((x_test, y_test)))
-        _ = myWidgets.popupWindowWithScatterPlotRegression(self, data_to_plot, (xAxis, yAxis))
-        for ii in listTrain:
-            for jj in self.listReferenceFiles:
-                if ii in jj:
-                    self.setImages[jj].setRegressionModel(aopt)
-        for ii in listTest:
-            for jj in self.listReferenceFiles:
-                if ii in jj:
-                    self.setImages[jj].setRegressionModel(aopt)
+        self.printMessage('Testing values: ' + '\n' + 'Pearson R: ' + "%.5f" % p0 + '\n' + \
+                          'Spearman R: ' + "%.5f" % s0 + '\n' + 'Distance R: ' + "%.5f" % pd0)
+        _ = myWidgets.popupWindowWithScatterPlotRegression(self, self.setData.data2plot, (xAxis, yAxis))
 
     # Correlation heat map to combine features using linear model
     def onHeatMap(self, button=None):
@@ -792,27 +709,16 @@ class Main(object):
         popwin = myWidgets.popupWindowWithList(self.listSelectedMethods, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="Y axis measure")
         yAxis = popwin.list_items
-        x = []
-        y = []
-        h = []
-        for ii in self.listReferenceFiles:
-            _, xValues = self.setImages[ii].returnVector(measure=xAxis)
-            _, yValues = self.setImages[ii].returnVector(measure=yAxis)
-            _, hValues = self.setImages[ii].returnVector(measure='human')
-            x += xValues.T.tolist()[0]
-            y += yValues.T.tolist()[0]
-            h += hValues.T.tolist()[0]
-        values = np.vstack((np.array(x), np.array(y), np.array(h))).T
-        Data = {xAxis: values[:, 0], yAxis: values[:, 1], 'human': values[:, 2]}
+        Data = self.setData.getHeatMapData(xAxis, yAxis)
         _ = myWidgets.popupWindowWithHeatParameterMap(self, Data, para_rangex=(0.0, 1.), para_rangey=(0.0, 1.),\
                                                       name_axis=(xAxis, yAxis, 'human'))
 
     # Opens pdf guide
     def onGuideClicked(self, button=None):
-        self.print_message("Do you need some help?\nPlease see our help GUIDE in pdf format")
+        self.printMessage("Do you need some help?\nPlease see our help GUIDE in pdf format")
         self.onAboutClick()
         opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, self.working_path + '/Help.pdf'])
+        subprocess.call([opener, self.workingPath + '/Help.pdf'])
 
     # Displays the author and version information
     def onAboutClick(self, button=None):

@@ -816,9 +816,9 @@ def createMenuBar(Object):  # Only for iFAS
     gmportm.connect("activate", Object.onSelectPackage)
     gmportm.get_child().modify_font(Pango.FontDescription("Sans 12"))
 
-    managemenu.append(addfg)
-    managemenu.append(mmportm)
     managemenu.append(gmportm)
+    managemenu.append(mmportm)
+    managemenu.append(addfg)
     menubar.append(manamenu)
 
     # Help menu

@@ -33,7 +33,7 @@ def textureExtent(img):
     return feature_temp[0, 0] / np.sum(GLCM_)
 
 
-def principalColor(img, th=0.02, r=1., min_num_pixels = 4):
+def TVColor(img, th=0.02, r=1., min_num_pixels = 4):
     SE = np.ones((np.int_(2 * r + 1), np.int_(2 * r + 1)))
     Lab_ref = color.rgb2lab(img)
     L_ref = Lab_ref[:, :, 0]
@@ -73,7 +73,7 @@ def principalColor(img, th=0.02, r=1., min_num_pixels = 4):
     avg_cielch = color.lab2lch(np.dstack((edges[0][prixx], edges[1][priyy], edges[2][prizz])))
     E3d = myUtilities.entropy3d(H_1, edges)
     TV = np.var(L_avg) + np.var(a_avg) + np.var(b_avg)
-    return avg_color
+    return TV
 
 
 def colorfulness(RGB, sizewin=3, type='Hasler'): #type = 'Hasler', 'Gao', or 'Panetta'
@@ -117,4 +117,4 @@ def colorfulness(RGB, sizewin=3, type='Hasler'): #type = 'Hasler', 'Gao', or 'Pa
         C = np.sqrt(np.abs(Sigma_alpha_sq) + np.abs(Sigma_beta_sq)) + 0.3 * np.sqrt(Mu_alpha_sq + Mu_beta_sq)
     C[np.isnan(C)] = 0
     C[np.isinf(C)] = 0
-    return c
+    return C, c
