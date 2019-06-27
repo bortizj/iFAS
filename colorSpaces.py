@@ -121,13 +121,13 @@ def RGB2Ljg(RGB):
     scriptL = np.zeros(Y0.shape)
     index = np.where(Y0 > 30)
     if index[0].any():
-        scriptL[index] = 5.9 * (np.power(Y0[index], 1./3.) - (2. / 3.) +\
+        scriptL[index] = 5.9 * ((np.sign(Y0[index]) * np.power(np.abs(Y0[index]), 1. / 3.)) - (2. / 3.) +\
                                 0.042 * (np.power(np.abs(Y0[index] - 30), 1./3.)))
     index = np.where(Y0 <= 30)
     if index[0].any():
-        scriptL[index] = 5.9 * (np.power(Y0[index], 1./3.) - (2. / 3.) -\
+        scriptL[index] = 5.9 * ((np.sign(Y0[index]) * np.power(np.abs(Y0[index]), 1. / 3.)) - (2. / 3.) -\
                                 0.042 * (np.power(np.abs(Y0[index] - 30), 1./3.)))
-    C = scriptL / (5.9 * (np.power(Y0, 1. / 3.)) - (2. / 3.))
+    C = scriptL / (5.9 * (np.sign(Y0) * np.power(np.abs(Y0), 1. / 3.)) - (2. / 3.))
     L = (scriptL - 14.4) / np.sqrt(2.)
     j = C * (1.7 * RGB3[:, :, 0] + 8 * RGB3[:, :, 1] - 9.7 * RGB3[:, :, 2])
     g = C * (-13.7 * RGB3[:, :, 0] + 17.7 * RGB3[:, :, 1] - 4 * RGB3[:, :, 2])
@@ -332,9 +332,9 @@ def XYZ2LAB2000HL(XYZ):
 
 def XYZ2LAB(XYZ):
     WhitePoint = np.array([0.950456, 1, 1.088754])
-    X = XYZ[:,:, 0] / WhitePoint[0]
-    Y = XYZ[:,:, 1] / WhitePoint[1]
-    Z = XYZ[:,:, 2] / WhitePoint[2]
+    X = XYZ[:, :, 0] / WhitePoint[0]
+    Y = XYZ[:, :, 1] / WhitePoint[1]
+    Z = XYZ[:, :, 2] / WhitePoint[2]
     fX = myUtilities.f(X)
     fY = myUtilities.f(Y)
     fZ = myUtilities.f(Z)

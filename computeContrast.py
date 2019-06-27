@@ -46,11 +46,10 @@ def WME(img, blk_size=np.array([3, 3])):
             values = Yref[ii:ii + blk_size[0], jj:jj + blk_size[1]]
             Imax = np.maximum(0., np.max(values))
             Imin = np.maximum(1., np.min(values))
-            c = np.log(np.abs(Imax - Imin) / (Imin))
-            if not np.isinf(c):
-                wme += c
-                n += 1
-                C[ii:ii + blk_size[0], jj:jj + blk_size[1]] = c
+            c = np.log((np.abs(Imax - Imin) / (Imin)) + 1)
+            C[ii:ii + blk_size[0], jj:jj + blk_size[1]] = c
+            wme += c
+            n += 1
     wme = 20. * wme / (blk_size[0] * blk_size[1])
     return C, wme / n
 
@@ -72,11 +71,10 @@ def MME(img, blk_size=np.array([3, 3])):
             values = Yref[ii:ii + blk_size[0], jj:jj + blk_size[1]]
             Imax = np.maximum(1., np.max(values))
             Imin = np.min(values)
-            c = np.log((Imax - Imin) / (Imax + Imin))
-            if not np.isinf(c):
-                mme += c
-                n += 1
-                C[ii:ii + blk_size[0], jj:jj + blk_size[1]] = c
+            c = np.log(((Imax - Imin) / (Imax + Imin)) + 1)
+            mme += c
+            n += 1
+            C[ii:ii + blk_size[0], jj:jj + blk_size[1]] = c
     mme = 20. * mme / (blk_size[0] * blk_size[1])
     return C, mme / n
 

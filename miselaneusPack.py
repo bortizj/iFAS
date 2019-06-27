@@ -52,7 +52,7 @@ def SSIM(img1, img2, K=np.array([0.01, 0.03]), wsize=11, mode='valid'):
         ssim_map[index] = (numerator1[index] * numerator2[index]) / (denominator1[index] * denominator2[index])
         index = (denominator1 != 0) & (denominator2 == 0)
         ssim_map[index] = numerator1[index] / denominator1[index]
-    return ssim_map, np.mean(ssim_map)
+    return ssim_map, np.nanmean(ssim_map)
 
 
 def blocking_diff(Ref_image, Pro_image):

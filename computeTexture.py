@@ -83,8 +83,7 @@ def coomatrix(X):
     info1 = (Entropy - Hxy1) / np.maximum(Ex, Ey)
     Hxy2 = -np.sum((GLCMx * GLCMy) * np.log2(GLCMx * GLCMy))
     info2 = np.sqrt(1 - np.exp(-2 * (Hxy2 - Entropy)))
-    c = [feature.greycoprops(GLCM, prop='energy')[0, 0], feature.greycoprops(GLCM, prop='contrast')[0, 0],\
-         feature.greycoprops(GLCM, prop='correlation')[0, 0], variance,\
+    c = [feature.greycoprops(GLCM, prop='energy')[0, 0], feature.greycoprops(GLCM, prop='contrast')[0, 0], variance,\
          feature.greycoprops(GLCM, prop='homogeneity')[0, 0], Entropy, info1, info2]
     return GLCM_, np.array(c)
 
@@ -270,7 +269,10 @@ def lawsoperators(X):
             Laws[ii,jj] = Laws[ii,jj]*Laws[ii,jj]
             Laws[ii,jj] = np.sqrt(signal.convolve2d(Laws[ii,jj], np.rot90(H, 2), mode='same'))
             if not(ii==0 and jj==0):
-                Laws[ii,jj] = Laws[ii,jj]/Laws[0,0]
+                Laws[ii,jj] = Laws[ii,jj] / Laws[0,0]
+            else:
+                idx = np.where(Laws[0, 0] == 0)
+                Laws[0, 0][idx] = 1
     M, N = Y.shape
     Xp = np.zeros((M, N, 10))
     c = 0

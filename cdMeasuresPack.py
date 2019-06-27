@@ -163,12 +163,12 @@ def cd04_colorSSIM(Ref_image, Pro_image):
     wbeta = 0.85
     L_alpha_beta_ref = colorSpaces.RGB2LAlphaBeta(Ref_image)
     L_alpha_beta_pro = colorSpaces.RGB2LAlphaBeta(Pro_image)
-    ssim_map_L, mssim_L = miselaneusPack.SSIM(L_alpha_beta_ref[:, :, 0], L_alpha_beta_pro[:, :, 0])
-    ssim_map_alpha, mssim_alpha = miselaneusPack.SSIM(L_alpha_beta_ref[:, :, 1], L_alpha_beta_pro[:, :, 1])
-    ssim_map_beta, mssim_beta = miselaneusPack.SSIM(L_alpha_beta_ref[:, :, 2], L_alpha_beta_pro[:, :, 2])
+    ssim_map_L, mssim_L = miselaneusPack.ssim(L_alpha_beta_ref[:, :, 0], L_alpha_beta_pro[:, :, 0])
+    ssim_map_alpha, mssim_alpha = miselaneusPack.ssim(L_alpha_beta_ref[:, :, 1], L_alpha_beta_pro[:, :, 1])
+    ssim_map_beta, mssim_beta = miselaneusPack.ssim(L_alpha_beta_ref[:, :, 2], L_alpha_beta_pro[:, :, 2])
     cssim = np.sqrt(wL * mssim_L ** 2 + walpha * mssim_alpha ** 2 + wbeta * mssim_beta ** 2)
-    CSSIM = np.sqrt(
-        wL * np.power(ssim_map_L, 2) + walpha * np.power(ssim_map_alpha, 2) + wbeta * np.power(ssim_map_beta, 2))
+    CSSIM = np.sqrt(wL * np.power(ssim_map_L, 2) + walpha * np.power(ssim_map_alpha, 2)\
+                    + wbeta * np.power(ssim_map_beta, 2))
     return CSSIM, cssim
 
 
@@ -186,13 +186,15 @@ def cd05_chroma_spread_extreme(Ref_image, Pro_image):
 
 
 def cd06_colorhist_diff(Ref_image, Pro_image,blk_size=16):
-    Lab_ref = color.rgb2lab(Ref_image)
-    Lab_pro = color.rgb2lab(Pro_image)
+    Lab_ref = color.rgb2lab(Ref_image / 255.)
+    Lab_pro = color.rgb2lab(Pro_image / 255.)
     Diff = myUtilities.block_proc(Lab_ref, blk_size, C=Lab_pro, funname='IhistogramintersectionLab')
     H_ref = myUtilities.colorhistogram(Lab_ref, minc=np.array([0, -128, -128]), maxc=np.array([100, 127, 127]), nbins=8)
     H_pro = myUtilities.colorhistogram(Lab_pro, minc=np.array([0, -128, -128]), maxc=np.array([100, 127, 127]), nbins=8)
-    H_ref = H_ref/np.sum(H_ref[:])
-    H_pro = H_pro/np.sum(H_pro[:])
+    if np.sum(H_ref[:]) != 0:
+        H_ref = H_ref / np.sum(H_ref[:])
+    if np.sum(H_pro[:]) != 0:
+        H_pro = H_pro / np.sum(H_pro[:])
     di = np.sum(np.minimum(H_ref[:], H_pro[:]))
     return Diff, di
 
@@ -226,8 +228,8 @@ def cd07_weighted_deltaE(Ref_image, Pro_image):
 def cd08_cid_appearance(Ref_image, Pro_image):
     iCAM_ref = colorSpaces.RGB2iCAM(Ref_image)#ipt_image
     iCAM_pro = colorSpaces.RGB2iCAM(Pro_image)
-    CID = np.sum(np.power(iCAM_ref - iCAM_pro,2), 2)
-    return CID, np.mean(CID)
+    CID = np.nansum(np.power(iCAM_ref - iCAM_pro,2), 2)
+    return CID, np.nanmean(CID)
 
 
 def cd09_jncd_deltaE(Ref_image, Pro_image):
@@ -318,9 +320,10 @@ def cd11_delta_ascd(Ref_image, Pro_image, sizewin=3):
             A[1:samples:3, 5] = l.ravel()*(a1.ravel()-a3.ravel())
             A[2:samples:3, 5] = l.ravel()*(a2.ravel()-a1.ravel())
             An = np.tile(np.sqrt(np.sum(np.power(A, 2), 0)), (A.shape[0], 1))
-            A = A/An
-            A[np.isnan(A)] = 0
-            A[np.isinf(A)] = 0
+            idx = np.where(A == 0)
+            An[idx] = 1.
+            A = A / An
+            A[idx] = 0.
             deltaCA = np.linalg.solve((np.power(WA, 2) + np.dot(A.T,A)),(np.dot(A.T, delta_rgb)))
             DeltaASCD[ii, jj] = np.sum(np.power(np.dot(WA, deltaCA), 2)) +\
                                 np.sum(np.power(delta_rgb - np.dot(A, deltaCA),2))
@@ -540,7 +543,7 @@ def cd18_sprext_patches(Ref_image, Pro_image, th=0.02, r=1., min_num_pixels=4, s
     SE = np.ones((np.int_(2 * r + 1), np.int_(2 * r + 1)))
     Yref = 0.299 * Ref_image[:, :, 0] + 0.587 * Ref_image[:, :, 1] + 0.114 * Ref_image[:, :, 2]
     Ypro = 0.299 * Pro_image[:, :, 0] + 0.587 * Pro_image[:, :, 1] + 0.114 * Pro_image[:, :, 2]
-    DL, _ = miselaneusPack.SSIM(Yref, Ypro, mode='same')
+    DL, _ = miselaneusPack.ssim(Yref, Ypro)
     dl = 0.
     # SE = np.ones((2, 2))
     YCbCr_ref = colorSpaces.RGB2YCbCr(Ref_image)
@@ -583,6 +586,8 @@ def cd18_sprext_patches(Ref_image, Pro_image, th=0.02, r=1., min_num_pixels=4, s
 def cd19_SSIMipt(Ref_image, Pro_image, mode='valid'):
     iCAM_ref = colorSpaces.RGB2iCAM(Ref_image)  # ipt_image
     iCAM_pro = colorSpaces.RGB2iCAM(Pro_image)
+    iCAM_ref[np.where(np.isnan(iCAM_ref))] = 0
+    iCAM_pro[np.where(np.isnan(iCAM_pro))] = 0
     ssim_map_i, mssim_i = miselaneusPack.SSIM(iCAM_ref[:, :, 0], iCAM_pro[:, :, 0])
     ssim_map_p, mssim_p = miselaneusPack.SSIM(iCAM_ref[:, :, 1], iCAM_pro[:, :, 1])
     ssim_map_t, mssim_t = miselaneusPack.SSIM(iCAM_ref[:, :, 2], iCAM_pro[:, :, 2])

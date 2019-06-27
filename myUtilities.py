@@ -128,8 +128,10 @@ def colorhistogramplusedeges(Image, minc=np.array([0, 0, 0]), maxc=np.array([255
 def IhistogramintersectionLab(I1, I2):
     H_1 = colorhistogram(I1, minc=np.array([0, -128, -128]), maxc=np.array([100, 127, 127]), nbins=8)
     H_2 = colorhistogram(I2, minc=np.array([0, -128, -128]), maxc=np.array([100, 127, 127]), nbins=8)
-    H_1 = 1. * H_1 / np.sum(H_1[:])
-    H_2 = 1. * H_2 / np.sum(H_2[:])
+    if np.sum(H_1[:]) != 0:
+        H_1 = 1. * H_1 / np.sum(H_1[:])
+    if np.sum(H_2[:]) != 0:
+        H_2 = 1. * H_2 / np.sum(H_2[:])
     return np.sum(np.minimum(H_1[:], H_2[:]))
 
 
@@ -492,16 +494,16 @@ def PiecewiseBilateralFilter(imageIn, z):
 
 
 def idl_dist(m, n=None):
-    x = np.arange(m)
-    x = np.power(np.minimum(x, (m - x)), 2)
     if n is None:
         n = m
+    x = np.arange(n)
+    x = np.power(np.minimum(x, (n - x)), 2)
     a = np.zeros((m, n))
-    for ii in range(0, n / 2):
+    for ii in range(0, m / 2):
         y = np.sqrt(x + ii ** 2)
-        a[:, ii] = y
+        a[ii, :] = y
         if ii != 0:
-            a[:, m - ii + 1] = y
+            a[m - ii, :] = y
     return a
 
 
@@ -616,7 +618,7 @@ def gauss(halfWidth, width):
 
 
 def f(Y):
-    fY = np.real(np.power(Y,1./3.))
+    fY = np.sign(Y) * np.power(np.abs(Y), 1. / 3.)
     ii = (Y < 0.008856)
     fY[ii] = Y[ii]*(841./108.) + (4./29.)
     return fY
@@ -626,7 +628,7 @@ def matlab_style_gauss2D(shape=(3,3),sigma=0.5):
     m,n = [(ss-1.)/2. for ss in shape]
     y,x = np.ogrid[-m:m+1,-n:n+1]
     h = np.exp( -(x*x + y*y) / (2.*sigma*sigma) )
-    h[ h < np.finfo(h.dtype).eps*h.max() ] = 0
+    h[ h < np.finfo(h.dtype).eps*h.max()] = 0
     sumh = h.sum()
     if sumh != 0:
         h /= sumh
