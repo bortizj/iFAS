@@ -115,3 +115,4 @@ def td13_wigner_distribution(Ref_image, Pro_image):
             Diff += np.abs(PWD_ref[:,:,ii,jj] - PWD_pro[:,:,ii,jj])
     Diff /= (PWD_ref.shape[2]*PWD_ref.shape[3])
     return Diff, myUtilities.KullbackLeiblerDivergence(hist_ref,hist_pro)
+

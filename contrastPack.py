@@ -78,3 +78,4 @@ def CWMC_difference(Ref_image, Pro_image, sizeblk=15, min_fb=3, overlap=3):
         e_pro = np.mean(C_pro_temp[C_pro_temp>-1])
     C_diff = C_ref - C_pro
     return C_diff, e_ref-e_pro
+
