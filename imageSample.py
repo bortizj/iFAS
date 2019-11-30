@@ -14,25 +14,37 @@ class ImageSet(object):
     # referenceImageLocation: string with folder location to the reference image
     # listProcessedImageLocations: list of strings with folder locations to the reference images
     # listFunctions: list of strings with the selected functions
-    def __init__(self, referenceImageLocation, listProcessedImageLocations, package, listFunctions):
+    def __init__(self, referenceImageLocation, listProcessedImageLocations, package, listFunctions, object=None):
         # Initializing the current image file locations and the list of processed images
         self.refLocation = referenceImageLocation
         self.proLocation = listProcessedImageLocations[0]
         self.proFileLocations = listProcessedImageLocations
+
+        message = 'Image ' + self.refLocation + ' has ' + str(len(self.proFileLocations)) \
+                  + ' associated processed files!'
+        if object is not None:
+            self.object = object
+            self.object.onLogging(logType='info', message=message)
+        else:
+            print message
+
         # Initializing the current images and total the number of images as well the image differences
         self.NprocessedImages = int(len(listProcessedImageLocations))
         self.imageReference = np.double(ndimage.imread(referenceImageLocation))
         self.imageProcessed = np.double(ndimage.imread(self.proLocation))
         self.imageDifference = np.sum(np.abs(self.imageReference - self.imageProcessed), axis=2)
+
         # Initializing the list of functions and its python file script
         self.package = package
         self.listMeasures = listFunctions
         self.Nmeasures = int(len(listFunctions))
         self.currentMeasure = listFunctions[0]
+
         # Initializing data dictionary
         self.data = dict()
         self.contentFeatures = dict()
         self.regressionModel = None
+
         for ii in self.listMeasures:
             self.data[ii] = np.zeros((self.NprocessedImages, 1))
         self.computeData()
@@ -42,21 +54,42 @@ class ImageSet(object):
         # package is actually the python module not only the string
         package = importlib.import_module(self.package)
         # Computing the list of measures between the reference and the list of processed images
+        if self.object is not None:
+            self.object.onLogging(logType='info', message='Package ' + self.package + ' loaded!')
+        else:
+            print 'Package ' + self.package + ' loaded!'
+
         for ii in self.listMeasures:
             # Verifying that package has the function ii from the list of measures
             if hasattr(package, ii):
+                if self.object is not None:
+                    self.object.onLogging(logType='info', message='Computing function ' + str(ii))
+                else:
+                    print 'Computing function ' + str(ii)
                 for jj in range(self.NprocessedImages):
                     currentFile = self.proFileLocations[jj]
                     # compute current values for the current image and measure selection and store the image difference
                     if ii == self.currentMeasure and currentFile == self.proLocation:
+                        # if current measure and prossed image selected on iFAS then store the matrix of
+                        # difference and processed image for later visualization
                         self.imageProcessed = np.double(ndimage.imread(currentFile))
                         self.imageDifference, val = getattr(package, ii)(self.imageReference, self.imageProcessed)
                     # else compute current values and discard the image difference
                     else:
                         _, val = getattr(package, ii)(self.imageReference, np.double(ndimage.imread(currentFile)))
                     self.data[ii][jj] = val
+                    if self.object is not None:
+                        self.object.onLogging(logType='info',
+                                              message=str(ii) + ': ' + self.refLocation + '; ' + currentFile + \
+                                              ' = ' + str(val))
+                    else:
+                        print str(ii) + ': ' + self.refLocation + '; ' + currentFile + ' = ' + str(val)
             else:
-                print "Current package named " + self.package + " has not attribute " + ii
+                if self.object is not None:
+                    self.object.onLogging(isNewSession=False, type='error',
+                                          message="Current package named " + self.package + " has not attribute " + str(ii))
+                else:
+                    print "Current package named " + self.package + " has not attribute " + str(ii)
 
     # ImageLocation is a string
     def changeProcessedImage(self, ImageLocation):
@@ -64,9 +97,16 @@ class ImageSet(object):
             self.proLocation = ImageLocation
             self.imageProcessed = np.double(ndimage.imread(ImageLocation))
             self.changeDifferenceImage(self.currentMeasure)
-            print "Processed image set to " + ImageLocation
+            if self.object is not None:
+                self.object.onLogging(logType='info', message="Processed image set to " + ImageLocation)
+            else:
+                print "Processed image set to " + ImageLocation
         else:
-            print "Current Image set has not processed image named " + ImageLocation
+            if self.object is not None:
+                self.object.onLogging(logType='error', message="Current Image set has not processed image named "\
+                                                               + ImageLocation)
+            else:
+                print "Current Image set has not processed image named " + ImageLocation
 
     # DifferenceImage is a string
     def changeDifferenceImage(self, DifferenceImage):
@@ -76,9 +116,18 @@ class ImageSet(object):
             self.imageDifference, _ = getattr(package, self.currentMeasure)(self.imageReference, self.imageProcessed)
             self.imageDifference[np.isnan(self.imageDifference)] = 0.
             self.imageDifference[np.isinf(self.imageDifference)] = 0.
-            print "Image difference set to " + self.currentMeasure
+            if self.object is not None:
+                self.object.onLogging(isNewSession=False, type='info',
+                                      message="Image difference set to " + self.currentMeasure)
+            else:
+                print "Image difference set to " + self.currentMeasure
         else:
-            print "Current package named " + self.package + " has not attribute " + DifferenceImage
+            if self.object is not None:
+                self.object.onLogging(isNewSession=False, type='error',
+                                      message="Current package named " + self.package + " has not attribute " +\
+                                              DifferenceImage)
+            else:
+                print "Current package named " + self.package + " has not attribute " + DifferenceImage
 
     # Adds a numpy array of data (n x 1) to the dictionary data with string name measureName
     def addPrecomputedData(self, measureName, data):
@@ -86,11 +135,24 @@ class ImageSet(object):
             self.data[measureName] = data.reshape((data.size, 1))
             if not (measureName in self.listMeasures):
                 self.listMeasures.append(measureName)
-            print "Attribute named " + measureName + " has been added. This data has not been saved!"
+            if self.object is not None:
+                self.object.onLogging(logType='info', message="Attribute named " + measureName +\
+                                                              " has been added. This data has not been saved!")
+            else:
+                print "Attribute named " + measureName + " has been added. This data has not been saved!"
         elif self.NprocessedImages != data.size:
-            print "Data size does not agree with input size " + str(self.NprocessedImages) + " != " + str(data.size)
+            if self.object is not None:
+                self.object.onLogging(logType='error', message="Data size does not agree with input size "\
+                                                               + str(self.NprocessedImages)\
+                                                               + " != " + str(data.size))
+            else:
+                print "Data size does not agree with input size " + str(self.NprocessedImages) + " != " + str(data.size)
         else:
-            print "Current Image set has already an attribute named " + self.currentMeasure
+            if self.object is not None:
+                self.object.onLogging(logType='error', message="Current Image set has already an attribute named "\
+                                                               + self.currentMeasure)
+            else:
+                print "Current Image set has already an attribute named " + self.currentMeasure
 
     # changing and recomputing the data based on the selection
     def changeMeasures(self, package, listFunctions):
@@ -156,37 +218,91 @@ class DataSet(object):
     # listReferenceImages: list of reference images
     # listProcessedImageLocations: dictionary with folder locations to the processed images
     # listFunctions: list of strings with the selected functions
-    def __init__(self, listreferenceImageLocations, listProcessedImageLocations, package, listFunctions):
+    def __init__(self, listreferenceImageLocations, listProcessedImageLocations, package, listFunctions, object=None):
         # Initializing the current image file locations and the list of reference as well as the processed images
         self.refLocation = listreferenceImageLocations[0]
         self.proLocation = listProcessedImageLocations[self.refLocation][0]
         self.refFileLocations = listreferenceImageLocations
         self.proFileLocations = listProcessedImageLocations
+        self.object =object
+        self.flagCorrectData = self.checkData()
+        if not self.flagCorrectData:
+            return
+
         # Initializing the current images and total the number of images as well the image differences
         self.NreferenceImages = int(len(listreferenceImageLocations))
         self.NprocessedImages = int(len(listProcessedImageLocations))
         self.imageReference = np.double(ndimage.imread(self.refLocation))
         self.imageProcessed = np.double(ndimage.imread(self.proLocation))
         self.imageDifference = np.sum(np.abs(self.imageReference - self.imageProcessed), axis=2)
+
         # Initializing the list of functions and its python file script
         self.package = package
         self.listMeasures = listFunctions
         self.Nmeasures = int(len(listFunctions))
         self.currentMeasure = listFunctions[0]
+
         # Initializing data dictionary
         self.data = dict()
         self.model = None
         self.modelName = None
         self.data2plot = dict()
+
+        # Computing measures for the database
         self.computeData()
 
     # Computes the data for thw whole dataset
-    def computeData(self):
+    def checkData(self):
+        if self.object is not None:
+            self.object.onLogging(logType='info', message='Verifying your image files...')
+        else:
+            print 'Verifying your image files...'
         count = 0
         for ii in self.refFileLocations:
-            self.data[ii] = ImageSet(ii, self.proFileLocations[ii], self.package, self.listMeasures)
+            NprocessedImages = int(len(self.proFileLocations[ii]))
+            for jj in range(NprocessedImages):
+                currentProFile = self.proFileLocations[ii][jj]
+                # compute current values for the current image and measure selection and store the image difference
+                imageProcessed = np.double(ndimage.imread(currentProFile))
+                imageReference = np.double(ndimage.imread(ii))
+                if imageReference.shape[0] != imageProcessed.shape[0] or\
+                        imageReference.shape[1] != imageProcessed.shape[1] or\
+                        imageReference.shape[2] != imageProcessed.shape[2]:
+                    message = 'Your image size from file: ' + currentProFile + ' does not agree with ' + ii
+                    if self.object is not None:
+                        self.object.onLogging(logType='error', message=message)
+                        self.object.onLogging(logTypeFalse, type='error', message=str(imageReference.shape) + '!='\
+                                                                                  + str(imageProcessed.shape))
+                    else:
+                        print message
+                    return False
             count += 1
-            print 100. * count / len(self.refFileLocations)
+            if self.object is not None:
+                self.object.onLogging(logType='info', message='Progress ... '\
+                                                              + str(100. * count / len(self.refFileLocations)))
+            else:
+                print 'Progress ... ' + str(100. * count / len(self.refFileLocations))
+        if self.object is not None:
+            self.object.onLogging(logType='info', message='Size agrees between images')
+        else:
+            print 'Size agrees between images'
+        return True
+
+    # Computes the data for thw whole dataset
+    def computeData(self):
+        if self.object is not None:
+            self.object.onLogging(logType='info', message='Your metrics are being computed...')
+        else:
+            print 'Your metrics are being computed...'
+        count = 0
+        for ii in self.refFileLocations:
+            self.data[ii] = ImageSet(ii, self.proFileLocations[ii], self.package, self.listMeasures, object=self.object)
+            count += 1
+            if self.object is not None:
+                self.object.onLogging(logType='info', message="Processing ref... "\
+                                                              + str(100. * count / len(self.refFileLocations)))
+            else:
+                print 100. * count / len(self.refFileLocations)
 
     # Convert the computed data to a string to be displayed by reference file
     def data2String(self):
@@ -251,7 +367,11 @@ class DataSet(object):
                             if temp_string[1] in listProcessed[jj]:
                                 data[jj] = float(temp_string[2])
                 if np.any(np.isnan(data)):
-                    print str(int(np.sum(np.isnan(data)))) + ' images not found. Verify your file.'
+                    if self.object is not None:
+                        self.object.onLogging(logType='error', message=str(int(np.sum(np.isnan(data))))\
+                                                                       + ' images not found. Verify your files.')
+                    else:
+                        print str(int(np.sum(np.isnan(data)))) + ' images not found. Verify your file.'
                     return
                 else:
                     self.data[ii].addPrecomputedData(measureName, data)
@@ -259,7 +379,10 @@ class DataSet(object):
             self.listMeasures.append(measureName)
             self.Nmeasures = int(len(self.listMeasures))
             self.currentMeasure = self.listMeasures[0]
-        print "Measure " + measureName + " loaded."
+        if self.object is not None:
+            self.object.onLogging(logType='error', message="Measure " + measureName + " loaded.")
+        else:
+            print "Measure " + measureName + " loaded."
 
     # get the matrix of the whole dta for specific pair of measures xAxis and yAxis
     def getDataMatrix(self, xAxis, yAxis):

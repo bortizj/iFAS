@@ -10,6 +10,31 @@ from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCan
 from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 import numpy as np
 import myUtilities
+import logging
+import os
+
+
+class iFasLog(object):
+    def __init__(self, pathLog):
+        currentTime = getTime(shortFormat=True)
+        try:
+            os.makedirs(pathLog + '/log')
+        except OSError:
+            pass
+        logging.basicConfig(filename=pathLog + '/log/log_' + currentTime + '.log',
+                            format='%(asctime)s %(message)s', level=logging.INFO)
+        logging.info('Starting logging for current session')
+
+    def onLogging(self, logType='info', message=''):
+        logging.info(logType + ': ' + message)
+        # if logType == 'info':
+        #     logging.info(logType + ': ' + message)
+        # elif logType == 'warning':
+        #     logging.warning(logType + ': ' + message)
+        # elif logType == 'error':
+        #     logging.error(logType + ': ' + message)
+        # else:
+        #     logging.debug(logType + ': ' + message)
 
 
 def load_file(MainWindow, type, message, multiple=False):
@@ -57,8 +82,11 @@ def load_file(MainWindow, type, message, multiple=False):
     return temp
 
 
-def getTime():
-    return strftime("%Y-%m-%d %H:%M:%S", gmtime())
+def getTime(shortFormat=False):
+    if shortFormat:
+        return strftime("%Y_%m_%d_%H_%M_%S", gmtime())
+    else:
+        return strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
 
 class popupWindowWithList(object):
@@ -138,10 +166,35 @@ class popupWindowWithTextInput(object):
         self.window.connect("destroy", self.on_click_me_clicked)
         button = Gtk.Button.new_with_label("Finish Selection")
         button.connect("clicked", self.on_click_me_clicked)
+        button.modify_font(Pango.FontDescription('Sans 16'))
         self.hbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.window.add(self.hbox)
         self.entry = Gtk.Entry()
         self.hbox.pack_start(self.entry, True, True, 0)
+        self.hbox.pack_start(button, True, True, 0)
+        self.window.show_all()
+        Gtk.main()
+
+
+class popupWindowWithLabel(object):
+    def on_click_me_clicked(self, button=None, widget=None):
+        self.window.destroy()
+        Gtk.main_quit()
+        return True
+
+    def __init__(self, message='Error check your log file!'):
+        self.window = Gtk.Window()
+        self.window.set_title("iFAS - " + message)
+        self.window.connect("delete-event", self.on_click_me_clicked)
+        self.window.connect("destroy", self.on_click_me_clicked)
+        button = Gtk.Button.new_with_label("OK")
+        button.connect("clicked", self.on_click_me_clicked)
+        button.modify_font(Pango.FontDescription('Sans 16'))
+        self.hbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.window.add(self.hbox)
+        label = Gtk.Label(message)
+        label.modify_font(Pango.FontDescription('Sans 18'))
+        self.hbox.pack_start(label, True, True, 0)
         self.hbox.pack_start(button, True, True, 0)
         self.window.show_all()
         Gtk.main()

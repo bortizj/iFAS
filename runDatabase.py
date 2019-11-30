@@ -36,6 +36,6 @@ def multipleRefmultiplePro(pythonFile, selectedPackage):
 # ~ Uncomment the following three lines for standalone running
 if __name__ == "__main__":
     selectedPackage = 'texturePack'
-    pythonFile = '/media/bortiz/DATA/gitProjects/multipleRefmultipleProTextureTest.py'
+    pythonFile = '/media/bortiz/DATA/fullPapers/IFAApplications/documents/CRIFiles/CRIdatabase.py'
     multipleRefmultiplePro(pythonFile, selectedPackage)
     x = raw_input('Press Enter to Finish')

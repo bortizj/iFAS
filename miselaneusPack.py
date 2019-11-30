@@ -7,7 +7,7 @@ from skimage import measure
 import myUtilities
 
 
-def psnr(Ref_image, Pro_image):
+def PSNR(Ref_image, Pro_image):
     Yref = myUtilities.checkifRGB(Ref_image)
     Ypro = myUtilities.checkifRGB(Pro_image)
     mse = np.mean(np.power(Yref - Ypro, 2))
