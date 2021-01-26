@@ -1,3 +1,4 @@
+Copyleft
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation version 3.
@@ -25,3 +26,12 @@ including computation of fidelity measures on a single pair of images and/or
 in a full database, visualization of pixel-wise image differences and 
 histogram of the image differences, scatter plots and correlation analysis 
 between human scores and objective measures.
+
+
+Python virtual enviroment configuration
+---------------------------------------
+Install anaconda https://www.anaconda.com/
+conda create --name ifas_venv python pip numpy pandas opencv tk matplotlib
+conda activate ifas_venv
+# To use your enviroment while iFAS is running 
+conda deactivate
