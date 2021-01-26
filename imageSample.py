@@ -130,7 +130,8 @@ class ImageSet(object):
                 print "Current package named " + self.package + " has not attribute " + DifferenceImage
 
     # Adds a numpy array of data (n x 1) to the dictionary data with string name measureName
-    def addPrecomputedData(self, measureName, data):
+    def addPrecomputedData(self, measureName, data, object):
+        self.object = object
         if not (self.data.has_key(measureName) or self.NprocessedImages != data.size):
             self.data[measureName] = data.reshape((data.size, 1))
             if not (measureName in self.listMeasures):
@@ -355,7 +356,8 @@ class DataSet(object):
         return Data
 
     # Set precompputed data such as human data in the whole database
-    def setPrecomputedData(self, datafile, measureName):
+    def setPrecomputedData(self, datafile, measureName, object):
+        self.object = object
         for ii in self.refFileLocations:
             listProcessed = self.data[ii].returnListProcessed()
             data = np.nan * np.ones((len(listProcessed), 1))
@@ -374,13 +376,13 @@ class DataSet(object):
                         print str(int(np.sum(np.isnan(data)))) + ' images not found. Verify your file.'
                     return
                 else:
-                    self.data[ii].addPrecomputedData(measureName, data)
+                    self.data[ii].addPrecomputedData(measureName, data, self.object)
         if not (measureName in self.listMeasures):
             self.listMeasures.append(measureName)
             self.Nmeasures = int(len(self.listMeasures))
             self.currentMeasure = self.listMeasures[0]
         if self.object is not None:
-            self.object.onLogging(logType='error', message="Measure " + measureName + " loaded.")
+            self.object.onLogging(logType='info', message="Measure " + measureName + " loaded.")
         else:
             print "Measure " + measureName + " loaded."
 
@@ -414,6 +416,8 @@ class DataSet(object):
 
     # Computes a regression model given a list of train and test samples, measures xAxis and yAxis and a model
     def regressionModel(self, listTrain, listTest, xAxis, yAxis, model):
+        # TODO to extend input for multiple variables at least for the case of k NNR and SVR
+        # TODO only working for knn of one dimension
         self.modelName = model
         x = []
         y = []
@@ -425,9 +429,13 @@ class DataSet(object):
         x = np.array(x)
         y = np.array(y)
         self.model = optimizationTools.optimize_function(x, y, fun_type=model)
-        y_est = optimizationTools.gen_data(x, self.model, fun_type=model)
+        if model == 'kNNR':
+            y_est = optimizationTools.gen_data(x, self.model, fun_type=model, arg=(self.model[0], self.model[1]))
+        else:
+            y_est = optimizationTools.gen_data(x, self.model, fun_type=model)
         xTest = []
         yTest = []
+
         for ii in listTest:
             _, xValues = self.data[ii].returnVector(measure=xAxis)
             _, yValues = self.data[ii].returnVector(measure=yAxis)
@@ -435,11 +443,17 @@ class DataSet(object):
             yTest += yValues.T.tolist()[0]
         x_test = np.array(xTest)
         y_test = np.array(yTest)
-        y_est_test = optimizationTools.gen_data(x_test, self.model, fun_type=model)
+        if model == 'kNNR':
+            pass
+        else:
+            y_est_test = optimizationTools.gen_data(x_test, self.model, fun_type=model)
+
         for ii in listTrain:
             self.data[ii].setRegressionModel(self.model)
+
         for ii in listTest:
             self.data[ii].setRegressionModel(self.model)
+
         self.data2plot = dict()
         xfull = np.linspace(np.minimum(np.min(x), np.min(x_test)), np.maximum(np.max(x), np.max(x_test)), 100)
         # Regression line data

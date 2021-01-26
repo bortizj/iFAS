@@ -39,7 +39,7 @@ class Main(object):
 
         # It is a list of strings with the name of the packages
         self.listAvailablePackages = None
-        self.getListPackages("./listPackages")
+        self.get_list_packages("./listPackages")
         self.selectedPackage = 'miselaneusPack'
 
         self.listAvailableMethods = []
@@ -101,19 +101,19 @@ class Main(object):
 
         # Creating the status bar
         self.statusBar = None
-        self.createStatusBar()
+        self.create_status_bar()
 
         # Setting Image Reference space on UI
         drawable_loc = self.builder.get_object("hbox4")
         self.drawableReference = Gtk.Image()
-        self.setImageSscrolledWindow(drawable_loc, self.drawableReference)
+        self.set_images_scrolled_window(drawable_loc, self.drawableReference)
         # Setting Image Processed space on UI
         self.drawableProcessed = Gtk.Image()
-        self.setImageSscrolledWindow(drawable_loc, self.drawableProcessed)
+        self.set_images_scrolled_window(drawable_loc, self.drawableProcessed)
         # Setting Image Difference space on UI
         drawable_loc = self.builder.get_object("box5")
         self.drawableDifference = Gtk.Image()
-        self.setImageSscrolledWindow(drawable_loc, self.drawableDifference)
+        self.set_images_scrolled_window(drawable_loc, self.drawableDifference)
 
         # Setting Plot canvas
         self.plotPlace = self.builder.get_object("box4")
@@ -135,7 +135,7 @@ class Main(object):
         self.textView = Gtk.TextView()
         self.textBuffer = self.textView.get_buffer()
         self.textTag = self.textBuffer.create_tag("bold", size_points=12, weight=Pango.Weight.BOLD)
-        self.createTextView()
+        self.create_text_view()
 
         # Setting labels settings
         self.labelProcessedImage = self.builder.get_object("processed_image")
@@ -147,35 +147,35 @@ class Main(object):
 
         # Setting Stop button
         self.buttonStop = self.builder.get_object("button2")
-        self.buttonStop.connect("clicked", self.onStopAll)
+        self.buttonStop.connect("clicked", self.on_stop_all)
 
         # Setting Start button
         # self.buttonStart = self.builder.get_object("button1")
         # self.buttonStart.connect("clicked", self.executeSelection)
 
-        self.updateImages()
+        self.update_images()
         # Destroying when quiting
         self.window.connect("delete_event", lambda w, e: Gtk.main_quit())
         self.window.connect("destroy", lambda w: Gtk.main_quit())
         # Displaying UI window
         self.window.show_all()
-        self.onAboutClick()
+        self.on_about_click()
 
     # Getting list of packages aka python scripts, fidelity group
-    def getListPackages(self, fileLocation):
+    def get_list_packages(self, fileLocation):
         self.logManager.onLogging(logType='info', message='Verifying list of iFAS packages')
         listPackages = []
         with open(fileLocation) as f:
             for line in f:
                 line = line.replace('\n', '')
-                if self.verifyPackage(line):
+                if self.verify_package(line):
                     listPackages.append(line)
                 else:
                     message = 'Verify your listPackages file. One ore more lines' +\
                                           'could be corrupted or empty: ' + line
                     self.logManager.onLogging(logType='error', message=message)
                     try:
-                        self.printMessage(message)
+                        self.print_message(message)
                     except AttributeError:
                         print message
         # It is a list of strings with the name of the packages
@@ -184,7 +184,7 @@ class Main(object):
         self.logManager.onLogging(logType='info', message='Link to packages are available')
 
     # Verifying that packages aka python scripts, fidelity groups are located in folder
-    def verifyPackage(self, packageName):
+    def verify_package(self, packageName):
         self.logManager.onLogging(logType='debug', message='Verifying Package: ' + packageName)
         try:
             if not packageName == '':
@@ -197,7 +197,7 @@ class Main(object):
             return False
 
     # function to print messages in the interface textview
-    def printMessage(self, message):
+    def print_message(self, message):
         self.logManager.onLogging(logType='debug', message='Printing message')
         currentTime = myWidgets.getTime()
         self.textBuffer.insert_with_tags(self.textBuffer.get_end_iter(), '\n\n' + currentTime + '\n', self.textTag)
@@ -205,7 +205,7 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='Message printed')
 
     # function to create the status bar
-    def createStatusBar(self):
+    def create_status_bar(self):
         self.logManager.onLogging(logType='debug', message='Creating status bar')
         self.statusBar = self.builder.get_object("levelbar1")
         self.statusBar.set_property("width-request", self.videoWidthDefault)
@@ -215,7 +215,7 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='Status bar created')
 
     # function to set image on scrolled window
-    def setImageSscrolledWindow(self, location, image):
+    def set_images_scrolled_window(self, location, image):
         self.logManager.onLogging(logType='debug', message='Setting image in scrolling window')
         scrolledwindow = Gtk.ScrolledWindow()
         scrolledwindow.set_hexpand(True)
@@ -228,7 +228,7 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='Image in scrolling window set')
 
     # function to set the parameters of the text viewer
-    def createTextView(self):
+    def create_text_view(self):
         self.logManager.onLogging(logType='debug', message='Creating text view')
         self.scrolledWindow.set_hexpand(True)
         self.scrolledWindow.set_vexpand(True)
@@ -237,25 +237,25 @@ class Main(object):
         self.scrolledWindow.set_property("width-request", int(7. * self.videoWidthDefault / 16.))
         self.scrolledWindow.set_property("height-request", self.videoHeightDefault)
         self.scrolledWindowPlace.pack_start(self.scrolledWindow, True, True, 0)
-        self.textView.connect("size-allocate", self.autoScroll)
+        self.textView.connect("size-allocate", self.auto_scroll)
         self.scrolledWindow.add(self.textView)
         self.logManager.onLogging(logType='debug', message='Text view created')
 
     # function to autoscroll the textViewer
-    def autoScroll(self, *args):
+    def auto_scroll(self, *args):
         adj = self.textView.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
 
     # function to stop every process
-    def onStopAll(self, button=None):
+    def on_stop_all(self, button=None):
         self.logManager.onLogging(logType='debug', message='Stop button pressed')
-        self.printMessage("Stop Pressed")
+        self.print_message("Stop Pressed")
         self.stopped = True
         self.logManager.onLogging(logType='debug', message='Stopped')
 
-    def updateImages(self):
+    def update_images(self):
         self.logManager.onLogging(logType='debug', message='Updating images')
-        self.saveTempFiles()
+        self.save_temp_files()
         self.drawableReference.set_from_file('/tmp/temp_ref.png')
         self.drawableProcessed.set_from_file('/tmp/temp_pro.png')
         self.drawableDifference.set_from_file('/tmp/temp_cd.png')
@@ -267,7 +267,7 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='Images updated')
 
     # Saving temporary image files to be displayed on the canvas
-    def saveTempFiles(self):
+    def save_temp_files(self):
         self.logManager.onLogging(logType='debug', message='Saving temporal files')
         self.setImages = self.setData.data[self.selectedRefFile]
         image = self.setImages.imageReference
@@ -287,10 +287,10 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='Temporal files saved')
 
     # Setting to default UI parameters
-    def returnDefault(self):
+    def return_default(self):
         self.logManager.onLogging(logType='debug', message='Returning to defaults')
         self.listAvailablePackages = None
-        self.getListPackages("./listPackages")
+        self.get_list_packages("./listPackages")
         self.selectedPackage = 'miselaneusPack'
 
         # Measures available in the pyhton script
@@ -322,49 +322,49 @@ class Main(object):
                                            self.selectedPackage, self.listSelectedMethods, object=self.logManager)
         self.setImages = self.setData.data[self.selectedRefFile]
         message = 'Returning to default parameters'
-        self.printMessage(message)
-        self.updateData()
-        self.updateImages()
+        self.print_message(message)
+        self.update_data()
+        self.update_images()
         self.logManager.onLogging(logType='debug', message='Default parameters set')
 
-    def updateData(self):
+    def update_data(self):
         self.logManager.onLogging(logType='debug', message='Updating data to display')
         self.setData.computeData()
         self.logManager.onLogging(logType='debug', message='Data updated')
 
-    def data2String(self):
+    def data_to_string(self):
         return self.setData.data2String()
 
     # Changing the list of methods
-    def onSelectMeasures(self, button=None, doCompute=True):
+    def on_select_measures(self, button=None, doCompute=True):
         self.logManager.onLogging(logType='debug', message='Changing selected measures')
         # Measures available in the pyhton script
         popwin = myWidgets.popupWindowWithList(self.listAvailableMethods, sel_method=Gtk.SelectionMode.MULTIPLE,\
                                                message="List of Measures")
         self.listSelectedMethods = popwin.list_items
         if not self.listSelectedMethods:
-            self.returnDefault()
+            self.return_default()
 
         self.currentMeasure = self.listSelectedMethods[0]
         if doCompute:
-            self.updateData()
-            str2Print = self.data2String()
-            self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
+            self.update_data()
+            str2Print = self.data_to_string()
+            self.print_message('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
                               '\n' + str2Print)
-            self.updateImages()
+            self.update_images()
             self.logManager.onLogging(logType='info', message='Package: ' + self.selectedPackage + '\n'\
                                                               + 'Difference map: ' + self.currentMeasure + '\n'\
                                                               + str2Print)
         self.logManager.onLogging(logType='debug', message='Selected measures changed')
 
     # Changing the package
-    def onSelectPackage(self, button=None, doCompute=True):
+    def on_select_package(self, button=None, doCompute=True):
         self.logManager.onLogging(logType='debug', message='Changing selected package')
         popwin = myWidgets.popupWindowWithList(self.listAvailablePackages, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="List of Packages")
         self.selectedPackage = popwin.list_items
         if not self.selectedPackage:
-            self.returnDefault()
+            self.return_default()
         else:
             package = importlib.import_module(self.selectedPackage)
             self.listAvailableMethods = []
@@ -375,30 +375,30 @@ class Main(object):
             # Measures selected by user
             self.listSelectedMethods = [self.currentMeasure]
             if doCompute:
-                self.updateData()
-                self.updateImages()
+                self.update_data()
+                self.update_images()
         self.logManager.onLogging(logType='debug', message='Selected package changed')
 
     # Changing the difference map
-    def onChangeDiffMap(self, button):
+    def on_change_diff_map(self, button):
         self.logManager.onLogging(logType='debug', message='Changing difference map')
         popwin = myWidgets.popupWindowWithList(self.listSelectedMethods, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="List of Measures")
         self.currentMeasure = popwin.list_items
         if not self.currentMeasure:
-            self.returnDefault()
+            self.return_default()
         else:
             self.setData.changeDiffMap(self.currentMeasure)
-        str2Print = self.data2String()
-        self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
+        str2Print = self.data_to_string()
+        self.print_message('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
                           '\n' + str2Print)
         self.logManager.onLogging(logType='info', message='Package: ' + self.selectedPackage + '\n'\
                                                           + 'Difference map: ' + self.currentMeasure + '\n' + str2Print)
-        self.updateImages()
+        self.update_images()
         self.logManager.onLogging(logType='debug', message='Difference map changed')
 
     # Changing the displaying image
-    def onImageSetChanged(self, button):
+    def on_image_set_changed(self, button):
         self.logManager.onLogging(logType='debug', message='Changing selected image reference')
         previousFile = self.selectedRefFile
         popwin = myWidgets.popupWindowWithList(self.listReferenceFiles, sel_method=Gtk.SelectionMode.SINGLE,\
@@ -406,7 +406,7 @@ class Main(object):
         self.selectedRefFile = popwin.list_items
         if not self.selectedRefFile:
             self.selectedRefFile = previousFile
-            self.printMessage("Error in Reference file selection. Returning to: " + previousFile.split('/')[-1])
+            self.print_message("Error in Reference file selection. Returning to: " + previousFile.split('/')[-1])
             self.logManager.onLogging(logType='error', message="Error in Reference file selection. Returning to: "\
                                                                 + previousFile.split('/')[-1])
         else:
@@ -417,12 +417,12 @@ class Main(object):
                     flag = True
             if flag:
                 self.selectedRefFile = newFile
-                self.printMessage("Reference file selection set to: " + newFile.split('/')[-1])
+                self.print_message("Reference file selection set to: " + newFile.split('/')[-1])
                 self.logManager.onLogging(logType='info', message="Reference file selection set to: "\
                                                                   + newFile.split('/')[-1])
             else:
                 self.selectedRefFile = previousFile
-                self.printMessage("Error finding Reference. Returning to: " + previousFile.split('/')[-1])
+                self.print_message("Error finding Reference. Returning to: " + previousFile.split('/')[-1])
                 self.logManager.onLogging(logType='error', message="Error finding Reference. Returning to: "\
                                                                    + previousFile.split('/')[-1])
         previousFile = self.selectedProFile
@@ -433,7 +433,7 @@ class Main(object):
         self.selectedProFile = popwin.list_items
         if not self.selectedProFile:
             self.selectedProFile = previousFile
-            self.printMessage("Error in processed file selection. Returning to: " + previousFile.split('/')[-1])
+            self.print_message("Error in processed file selection. Returning to: " + previousFile.split('/')[-1])
             self.logManager.onLogging(logType='error', message="Error in processed file selection. Returning to: "\
                                                                + previousFile.split('/')[-1])
         else:
@@ -444,25 +444,25 @@ class Main(object):
                     flag = True
             if flag:
                 self.selectedProFile = newFile
-                self.printMessage("Processed file selection set to: " + newFile.split('/')[-1])
+                self.print_message("Processed file selection set to: " + newFile.split('/')[-1])
                 self.logManager.onLogging(logType='info', message="Processed file selection set to: "\
                                                                   + newFile.split('/')[-1])
             else:
                 self.selectedProFile = previousFile
-                self.printMessage("Error finding selection. Returning to sample: " + previousFile.split('/')[-1])
+                self.print_message("Error finding selection. Returning to sample: " + previousFile.split('/')[-1])
                 self.logManager.onLogging(logType='error', message="Error finding selection. Returning to sample: "\
                                                                    + previousFile.split('/')[-1])
         self.setData.changeProcessedImage(self.selectedRefFile, self.selectedProFile)
-        self.updateImages()
+        self.update_images()
         self.logManager.onLogging(logType='debug',  message='Images updated')
         # TODO modify to clear plot place
 
     # Computing single reference single processed image fidelity using the selected measures
-    def singleRefsinglePro(self, button):
+    def single_ref_single_pro(self, button):
         self.logManager.onLogging(logType='debug', message='Starting new: Single - Single')
-        self.returnDefault()
-        self.onSelectPackage(doCompute=False)
-        self.onSelectMeasures(doCompute=False)
+        self.return_default()
+        self.on_select_package(doCompute=False)
+        self.on_select_measures(doCompute=False)
         self.selectedRefFile = myWidgets.load_file(self.window, 'img', 'Select your Reference Image')
         self.selectedProFile = myWidgets.load_file(self.window, 'img', 'Select your Processed Image')
         if self.selectedRefFile and self.selectedProFile:
@@ -471,25 +471,25 @@ class Main(object):
             self.listProcessedFiles = dict([(self.selectedRefFile, [self.selectedProFile])])
             self.setData = imageSample.DataSet(self.listReferenceFiles, self.listProcessedFiles, \
                                                self.selectedPackage, self.listSelectedMethods, object=self.logManager)
-            self.updateImages()
-            str2Print = self.data2String()
-            self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
+            self.update_images()
+            str2Print = self.data_to_string()
+            self.print_message('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure +\
                               '\n' + str2Print)
             self.logManager.onLogging(logType='info', message='Package: ' + self.selectedPackage + '\n'\
                                                               + 'Difference map: ' + self.currentMeasure + '\n'\
                                                               + str2Print)
             self.logManager.onLogging(logType='info', message="Process Finished!")
-            self.printMessage("Process Finished!")
+            self.print_message("Process Finished!")
         else:
-            self.returnDefault()
+            self.return_default()
         self.logManager.onLogging(logType='debug', message='Single - Single finished')
 
     # Computing single reference multiple processed image fidelity using the selected measures
-    def singleRefmultiplePro(self, button):
+    def single_ref_multiple_pro(self, button):
         self.logManager.onLogging(logType='debug', message='Starting new: Single - Multiple')
-        self.returnDefault()
-        self.onSelectPackage(doCompute=False)
-        self.onSelectMeasures(doCompute=False)
+        self.return_default()
+        self.on_select_package(doCompute=False)
+        self.on_select_measures(doCompute=False)
         self.selectedRefFile = myWidgets.load_file(self.window, 'img', 'Select your Reference Image')
         processedFiles = myWidgets.load_file(self.window, 'img', 'Select your Processed Images', multiple=True)
         if self.selectedRefFile and self.selectedProFile:
@@ -499,40 +499,40 @@ class Main(object):
             self.listProcessedFiles = dict([(self.selectedRefFile, processedFiles)])
             self.setData = imageSample.DataSet(self.listReferenceFiles, self.listProcessedFiles, \
                                                self.selectedPackage, self.listSelectedMethods, object=self.logManager)
-            self.updateImages()
-            str2Print = self.data2String()
-            self.printMessage(
+            self.update_images()
+            str2Print = self.data_to_string()
+            self.print_message(
                 'Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure + '\n' + \
                 str2Print)
-            self.printMessage("Process Finished!")
+            self.print_message("Process Finished!")
             self.logManager.onLogging(logType='info', message='Package: ' + self.selectedPackage + '\n'\
                                                               + 'Difference map: ' + self.currentMeasure + '\n'\
                                                               + str2Print)
             self.logManager.onLogging(logType='info', message="Process Finished!")
         else:
-            self.returnDefault()
+            self.return_default()
         self.logManager.onLogging(logType='debug', message='Single - Multiple finished')
 
     # Computing multiple reference multiple processed image fidelity using the selected measures
-    def multipleRefmultiplePro(self, button=None):
+    def multiple_ref_multiple_pro(self, button=None):
         self.logManager.onLogging(logType='debug', message='Starting new: Multiple - Multiple')
-        self.returnDefault()
-        self.printMessage('Computing your data!\nThis could take a while depending of your data size.')
-        self.onSelectPackage(doCompute=False)
-        self.onSelectMeasures(doCompute=False)
+        self.return_default()
+        self.print_message('Computing your data!\nThis could take a while depending of your data size.')
+        self.on_select_package(doCompute=False)
+        self.on_select_measures(doCompute=False)
         pythonFile = myWidgets.load_file(self.window, 'txt', 'Select your .py file')
         if pythonFile:
             try:
                 path2Files, listReferences, dataSet = imp.load_source('module.name', pythonFile).myDataBase()
                 path2Files = '/'.join(pythonFile.split('/')[:-1]) + path2Files
             except SyntaxError:
-                self.printMessage('File Syntax corrupted. Please verify your file!')
+                self.print_message('File Syntax corrupted. Please verify your file!')
                 self.logManager.onLogging(logType='error', message='File Syntax corrupted. Please verify your file!')
-                self.returnDefault()
+                self.return_default()
                 return
         else:
             self.logManager.onLogging(logType='error', message='File Syntax corrupted. Please verify your file!')
-            self.returnDefault()
+            self.return_default()
             return
         self.listProcessedFiles = dict()
         self.listReferenceFiles = []
@@ -546,27 +546,27 @@ class Main(object):
         self.currentMeasure = self.listSelectedMethods[0]
         self.selectedRefFile = self.listReferenceFiles[0]
         self.selectedProFile = self.listProcessedFiles[self.selectedRefFile][0]
-        self.updateImages()
-        str2Print = self.data2String()
-        self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure + '\n' + \
-                          str2Print)
+        self.update_images()
+        str2Print = self.data_to_string()
+        self.print_message('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure + '\n' + \
+                           str2Print)
         self.logManager.onLogging(logType='info', message='Package: ' + self.selectedPackage + '\n'\
                                                           + 'Difference map: ' + self.currentMeasure + '\n' + str2Print)
-        self.printMessage("Process Finished!")
+        self.print_message("Process Finished!")
         self.logManager.onLogging(logType='debug', message='Multiple - Multiple Finished')
 
     # Save computed data
-    def onSaveData(self, button=None):
+    def on_save_data(self, button=None):
         self.logManager.onLogging(logType='debug', message='Saving Data')
         popwin = myWidgets.popupWindowWithTextInput('Name your file: ')
         with open(self.workingPath + '/' + popwin.file_name + '.iFAS', 'w') as f:
             pickle.dump([self.selectedPackage, self.listAvailableMethods, self.listSelectedMethods, self.currentMeasure,\
                          self.listReferenceFiles, self.selectedRefFile, self.selectedProFile, self.setData], f)
-        self.printMessage("Save completed!")
+        self.print_message("Save completed!")
         self.logManager.onLogging(logType='debug', message='Save completed!')
 
     # Load precomputed data
-    def onLoadData(self, button=None):
+    def on_load_data(self, button=None):
         self.logManager.onLogging(logType='debug', message='Loading Data')
         temp = myWidgets.load_file(self.window, 'txt', 'Select your .iFAS file')
         try:
@@ -575,25 +575,25 @@ class Main(object):
                 self.listReferenceFiles, self.selectedRefFile, self.selectedProFile, self.setData = pickle.load(f)
             self.xAxis = self.currentMeasure
             self.yAxis = self.currentMeasure
-            self.updateImages()
-            str2Print = self.data2String()
-            self.printMessage('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure\
-                              + '\n' + str2Print)
+            self.update_images()
+            str2Print = self.data_to_string()
+            self.print_message('Package: ' + self.selectedPackage + '\n' + 'Difference map: ' + self.currentMeasure \
+                               + '\n' + str2Print)
             self.logManager.onLogging(logType='info', message='Package: ' + self.selectedPackage + '\n'\
                                                               + 'Difference map: ' + self.currentMeasure + '\n'\
                                                               + str2Print)
-            self.printMessage("Load Completed!")
+            self.print_message("Load Completed!")
             self.logManager.onLogging(logType='info', message='Load Completed!')
         except IOError:
-            self.printMessage('File corrupted or not an iFAS file. Please verify your file!')
+            self.print_message('File corrupted or not an iFAS file. Please verify your file!')
             self.logManager.onLogging(logType='error', message='File corrupted or not an iFAS file.'\
                                                                + 'Please verify your file!')
-            self.returnDefault()
+            self.return_default()
             return
         self.logManager.onLogging(logType='debug', message='Data loaded')
 
     # Plotting data on UI for current reference ImageSet
-    def plotCurrentSelection(self):
+    def plot_current_selection(self):
         self.logManager.onLogging(logType='debug', message='Plotting data on UI for current reference ImageSet')
         self.setImages = self.setData.data[self.selectedRefFile]
         _, xAxisValues = self.setImages.returnVector(measure=self.xAxis)
@@ -609,14 +609,14 @@ class Main(object):
         self.axis.set_ylabel(self.yAxis, fontsize=7)
         self.figure.canvas.draw()
         p, s, t, pd = myUtilities.compute_1dcorrelatiosn(xAxisValues, yAxisValues)
-        self.printMessage("Pearson R = " + "%.5f" % p + "\n" + "Spearman R = " + "%.5f" % s + "\n" + \
+        self.print_message("Pearson R = " + "%.5f" % p + "\n" + "Spearman R = " + "%.5f" % s + "\n" + \
                           "Distance R = " + "%.5f" % pd)
         # self.printMessage("Pearson R = " + "%.5f" % p + "\n" + "Spearman R = " + "%.5f" % s + "\n" +\
         #                   "Kendall t = " + "%.5f" % t + "\n" + "Distance R = " + "%.5f" % pd)
         self.logManager.onLogging(logType='debug', message='ata on UI for current reference ImageSet plotted')
 
     # Plotting selected x and y axis
-    def plotXmeasureYmeasure(self, button):
+    def plot_x_y(self, button):
         self.logManager.onLogging(logType='debug', message='Plotting selected x and y axis')
         popwin = myWidgets.popupWindowWithList(self.listSelectedMethods, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="X axis measure")
@@ -628,13 +628,13 @@ class Main(object):
         self.yAxis = popwin.list_items
         if not self.yAxis:
             self.yAxis = self.listSelectedMethods[0]
-        self.printMessage("Current x axis: " + self.xAxis)
-        self.printMessage("Current y axis: " + self.yAxis)
-        self.plotCurrentSelection()
+        self.print_message("Current x axis: " + self.xAxis)
+        self.print_message("Current y axis: " + self.yAxis)
+        self.plot_current_selection()
         self.logManager.onLogging(logType='debug', message='Selected x and y axis plotted')
 
     # Plotting ALL x and y axis
-    def onScatterPlot(self, button=None):
+    def on_scatter_plot(self, button=None):
         self.logManager.onLogging(logType='debug', message='Plotting ALL x and y axis')
         popwin = myWidgets.popupWindowWithList(self.listSelectedMethods, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="X axis measure")
@@ -647,11 +647,11 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='ALL x and y axis plotted')
 
     # Plotting Multiple distortion types according to selected by user
-    def onMultipleDistortionPlot(self, button=None, data=None):
+    def on_multiple_distortion_plot(self, button=None, data=None):
         self.logManager.onLogging(logType='debug', message='Plotting Multiple distortion types according to selected by user')
         popwin = myWidgets.popupWindowWithTextInput('Number of distortions: ')
         if not popwin.file_name:
-            self.printMessage(popwin.file_name + " is not integer!")
+            self.print_message(popwin.file_name + " is not integer!")
             return
         Ndistortions = int(popwin.file_name)
         listProcessedFiles = self.setData.getListProcessed()
@@ -673,34 +673,34 @@ class Main(object):
                                   message='Plotting Multiple distortion types according to selected by user')
 
     # Adds precomputed measure. Name human is reserved for human scores (DMOS)
-    def addPrecomputedMeasure(self, button=None):
+    def add_precomputed_measure(self, button=None):
         self.logManager.onLogging(logType='debug', message='Adding precomputed measure')
         temp = myWidgets.load_file(self.window, 'txt', 'Select your measure file')
         if temp:
             popwin = myWidgets.popupWindowWithTextInput('Name your measure [name it \'human\'\nfor subjective scores]: ')
-            self.setData.setPrecomputedData(temp, popwin.file_name)
+            self.setData.setPrecomputedData(temp, popwin.file_name, self.logManager)
             if not (popwin.file_name in self.listSelectedMethods):
                 self.listSelectedMethods.append(popwin.file_name)
-            self.printMessage("File " + temp + " loaded.")
-            self.logManager.onLogging(logType='info', message='File " + temp + " loaded.')
+            self.print_message("File " + temp + " loaded.")
+            self.logManager.onLogging(logType='info', message='File ' + temp + ' loaded.')
         else:
-            self.printMessage("Error finding data File")
+            self.print_message("Error finding data File")
             self.logManager.onLogging(logType='error', message='Error finding data File!')
         self.logManager.onLogging(logType='debug', message='Precomputed measure added')
 
     # Adds new python script to the configuration file
-    def addNewPythonScript(self, button=None):
+    def add_new_python_script(self, button=None):
         self.logManager.onLogging(logType='debug', message='Adding new python script to the configuration file')
         popwin = myWidgets.popupWindowWithTextInput()
         self.listAvailablePackages.append(popwin.file_name)
         file('./listPackages', 'w').write("\n".join(self.listAvailablePackages) + "\n")
-        self.getListPackages("./listPackages")
-        self.printMessage('New fidelity pack add to the default packages.')
+        self.get_list_packages("./listPackages")
+        self.print_message('New fidelity pack add to the default packages.')
         self.logManager.onLogging(logType='info', message='New fidelity pack add to the default packages.')
         self.logManager.onLogging(logType='debug', message='New python script to the configuration file added')
 
     # Plots the correlation bar for the selected measures and the 'human' data if available
-    def globalCorrelationBarPlot(self, button=None):
+    def global_correlation_bar_plot(self, button=None):
         self.logManager.onLogging(logType='debug', message='Plotting correlation bar for the measures and the human')
         correlations = {}
         for ii in self.listSelectedMethods:
@@ -708,8 +708,8 @@ class Main(object):
                 Data = self.setData.getDataMatrix(ii, 'human')
                 p, s, t, pd = myUtilities.compute_1dcorrelatiosn(Data[:, 0], Data[:, 1])
                 correlations[ii] = np.abs(np.asarray([p, s, t, pd]))
-                self.printMessage(ii + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + 'Spearman R: ' + "%.5f" % s \
-                                  + 'Distance R: ' + "%.5f" % pd)
+                self.print_message(ii + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + 'Spearman R: ' + "%.5f" % s \
+                                   + 'Distance R: ' + "%.5f" % pd)
                 # self.printMessage(ii + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + 'Spearman R: ' + "%.5f" % s \
                 #                    + '\n' + 'Kendall t: ' + "%.5f" % t + '\n' + 'Distance R: ' + "%.5f" % pd)
         pmax = 0.
@@ -733,13 +733,13 @@ class Main(object):
         message += "\nBest according to Spearman R is " + posMaxS + ': ' + "%.5f" % smax
         # message += "\nBest according to Kendall t is " + posMaxt + ': ' + "%.5f" % tmax
         message += "\nBest according to Correlation distance is " + posMaxD + ': ' + "%.5f" % pdmax
-        self.printMessage(message)
+        self.print_message(message)
         self.logManager.onLogging(logType='debug', message=message)
         _ = myWidgets.popupWindowWithBarPlot(self, correlations)
         self.logManager.onLogging(logType='debug', message='Correlation bar for the measures and the human plotted')
 
     # Box plot of the correlations per source sample
-    def boxPlotxReference(self, button=None):
+    def box_plot_reference(self, button=None):
         self.logManager.onLogging(logType='debug', message='Box plot of the correlations per source sample')
         correlations = {}
         for ii in self.listSelectedMethods:
@@ -752,7 +752,7 @@ class Main(object):
                     message = ii + '\n' + jj.split('/')[-1] + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
                               'Spearman R: ' + "%.5f" % s + '\n' + 'Kendall t: ' + "%.5f" % t + '\n' + \
                               'Distance R: ' + "%.5f" % pd
-                    self.printMessage(message=message)
+                    self.print_message(message=message)
                     self.logManager.onLogging(logType='debug', message=message)
                     # self.printMessage(ii + '\n' + jj.split('/')[-1] + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
                     #                   'Spearman R: ' + "%.5f" % s + '\n' + 'Kendall t: ' + "%.5f" % t + '\n' + \
@@ -762,7 +762,7 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='Correlations per source sample plotted')
 
     # Histogram of the content features of the references
-    def histogramContentFeatures(self, button=None):
+    def histogram_content_features(self, button=None):
         self.logManager.onLogging(logType='debug', message='Histogram of the content features of the references')
         listContentFunctions = inspect.getmembers(contentFeatures, inspect.isfunction)
         # Extracting the string
@@ -781,7 +781,7 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='Histogram of the content features of the references plotted')
 
     # Linear and non linear Regression Wizzard
-    def onRegression(self, button=None, data=None):
+    def on_regression(self, button=None, data=None):
         self.logManager.onLogging(logType='debug', message='Linear and non linear Regression Wizzard')
         popwin = myWidgets.popupWindowWithList(self.listReferenceFiles, sel_method=Gtk.SelectionMode.MULTIPLE,\
                                                split_=True, message="Reference image TRAINING set")
@@ -809,15 +809,15 @@ class Main(object):
         messagea = ''
         for ii in range(len(aopt)):
             messagea += 'a' + str(ii) + ": %.5f" % aopt[ii] + '\n'
-        self.printMessage("The optimal parameters for function\n" + optimizationTools.fun_text(data) + "\n" + messagea)
+        self.print_message("The optimal parameters for function\n" + optimizationTools.fun_text(data) + "\n" + messagea)
         self.logManager.onLogging(logType='info', message="The optimal parameters for function\n"\
                                                           + optimizationTools.fun_text(data) + "\n" + messagea)
-        self.printMessage('Training values: ' + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
+        self.print_message('Training values: ' + '\n' + 'Pearson R: ' + "%.5f" % p + '\n' + \
                           'Spearman R: ' + "%.5f" % s + '\n' + 'Distance R: ' + "%.5f" % pd)
         self.logManager.onLogging(logType='info', message='Training values: ' + '\n' + 'Pearson R: ' + "%.5f" % p\
                                                           + '\n' + 'Spearman R: ' + "%.5f" % s + '\n' + 'Distance R: '\
                                                           + "%.5f" % pd)
-        self.printMessage('Testing values: ' + '\n' + 'Pearson R: ' + "%.5f" % p0 + '\n' + \
+        self.print_message('Testing values: ' + '\n' + 'Pearson R: ' + "%.5f" % p0 + '\n' + \
                           'Spearman R: ' + "%.5f" % s0 + '\n' + 'Distance R: ' + "%.5f" % pd0)
         self.logManager.onLogging(logType='info', message='Testing values: ' + '\n' + 'Pearson R: ' + "%.5f" % p0\
                                                           + '\n' + 'Spearman R: ' + "%.5f" % s0 + '\n' + 'Distance R: '\
@@ -826,9 +826,9 @@ class Main(object):
         self.logManager.onLogging(logType='debug', message='Linear and non linear Regression Wizzard finished')
 
     # Correlation heat map to combine features using linear model
-    def onHeatMap(self, button=None):
+    def on_heat_map(self, button=None):
         self.logManager.onLogging(logType='debug', message='Correlation heat map to combine features using linear model')
-        self.printMessage("Heating the map")
+        self.print_message("Heating the map")
         self.logManager.onLogging(logType='info', message='Heating the map')
         popwin = myWidgets.popupWindowWithList(self.listSelectedMethods, sel_method=Gtk.SelectionMode.SINGLE,\
                                                message="X axis measure")
@@ -843,26 +843,26 @@ class Main(object):
                                   message='Correlation heat map to combine features using linear model heated')
 
     # Opens pdf guide
-    def onGuideClicked(self, button=None):
+    def on_guide_clicked(self, button=None):
         self.logManager.onLogging(logType='debug', message='Help?')
-        self.printMessage("Do you need some help?\nPlease see our help GUIDE in pdf format")
-        self.onAboutClick()
+        self.print_message("Do you need some help?\nPlease see our help GUIDE in pdf format")
+        self.on_about_click()
         opener = "open" if sys.platform == "darwin" else "xdg-open"
         subprocess.call([opener, self.workingPath + '/Help.pdf'])
         self.logManager.onLogging(logType='debug', message='Helpped')
 
     # Displays the author and version information
-    def onAboutClick(self, button=None):
+    def on_about_click(self, button=None):
         self.logManager.onLogging(logType='debug', message='Aboud click')
         currentTime = myWidgets.getTime()
-        self.printMessage("iFAS beta-Version Edition 2019-05\n" + \
+        self.print_message("iFAS beta-Version Edition 2019-05\n" + \
                           'Copyleft Benhur Ortiz-Jaramillo\n' + \
                           'Postdoctoral researcher at IPI-imec\n' + \
                           'This program is only for research purposes\nand comes with absolutely no warranty')
         self.logManager.onLogging(logType='debug', message='about clicked')
 
     # updates the window size to the current display
-    def updateScreenSize(self, button):
+    def update_screen_size(self, button):
         self.logManager.onLogging(logType='debug', message='Updating screen size')
         screen = self.window.get_screen()
         monitors = []

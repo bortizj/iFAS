@@ -49,16 +49,16 @@ def gaussian(x, y, sigma):
 def number_neighbour(R=1.5):
     if R == 1:
         N = 8
-        Scale = 1
+        Scale = 1.
     elif R == 1.5:
         N = 12
-        Scale = 1 / 2
+        Scale = 1. / 2.
     elif R == 2:
         N = 16
-        Scale = 1 / 4
+        Scale = 1. / 4.
     elif R == 3:
         N = 24
-        Scale = 1 / 8
+        Scale = 1. / 8.
     var = io.loadmat('LookatTablesLBP.mat')
     Table = var['look_table_' + str(N)]
     return N, Table, Scale
