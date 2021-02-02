@@ -17,6 +17,8 @@ author: Benhur Ortiz Jaramillo
 
 # This file contains helper functions which do not belong to any class
 
+import tkinter as tk
+import tkinter.ttk as ttk
 import numpy as np
 import cv2
 
@@ -41,3 +43,45 @@ def logo_image(size_in):
         font_thickness
         )
     return img
+
+
+class ProgressBar(object):
+    """
+    Class object to initialize the main window of a progressbar
+    """
+    def __init__(self, title='Default'):
+        self.main_window = tk.Tk()
+        self.main_window.title(title)
+        self.progress_bar = ttk.Progressbar(
+            master=self.main_window, orient=tk.HORIZONTAL, mode='determinate', maximum=100, value=0
+            )
+        self.progress_bar.pack(fill=tk.BOTH, expand=1)
+
+        self.main_window.mainloop()
+
+    def update_value(self, value=1):
+        # Keep updating the master object to redraw the progress bar
+        self.progress_bar['value'] += value
+        self.main_window.update()
+
+
+class Radiobutton(object):
+    """
+    Class object to initialize the main window of a popup with radiobuttons
+    """
+    def __init__(self, list_dist=[''], title='Default'):
+        self.main_window = tk.Tk()
+        self.main_window.title(title)
+        self.var = tk.StringVar()
+        self.var.set(list_dist[0])
+
+        for item in list_dist:
+            self.button = tk.Radiobutton(
+                self.main_window, text=item, variable=self.var, value=item, command=self.selection
+                )
+            self.button.pack(anchor=tk.N)
+
+        self.main_window.mainloop()
+
+    def selection(self):
+        return self.var.get()

@@ -1,0 +1,19 @@
+Python virtual enviroment configuration
+---------------------------------------
+Install anaconda https://www.anaconda.com/
+conda create --name ifas_venv python pip numpy pandas tk matplotlib
+conda activate ifas_venv
+pip install opencv-python
+or 
+conda install -c anaconda opencv
+# To use your enviroment while iFAS is running
+conda deactivate
+# Or use the requirements file
+conda create --name ifas_venv --file requirements.txt
+
+# Create Button
+To create a new database select the folder with a set of source images
+Then select the destination folder and give a name to your database
+Note: the source image has a settings file named db_settings with the following rows
+row one is the name of the distortion which should be at add_distortions.py
+row two is the levels of distortion in comma separated values

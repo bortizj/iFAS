@@ -17,24 +17,33 @@ author: Benhur Ortiz Jaramillo
 
 from PIL import ImageTk, Image
 import tkinter as tk
+import tkinter.ttk as ttk
 import tkinter.messagebox
+import tkinter.filedialog
 from tkinter import font
 import numpy as np
 import importlib
 import inspect
 import pathlib
+import shutil
 import pandas
 import time
 import glob
 import cv2
+import csv
 import sys
 import os
 
+from image_processing import add_distortions
 import ifas_misc
 
 PATH_FILE = pathlib.Path(__file__).parent.absolute()
-PATH_MEASURES = PATH_FILE.parents[0].joinpath('measures')
-sys.path.append(str(PATH_MEASURES))
+PATH_MEASURES = PATH_FILE.parents[0].joinpath('fidelity_measures')
+LIST_VALID_EXTENSIONS = ['.png', '.jpg', '.bmp']
+temp_list = inspect.getmembers(add_distortions, inspect.isfunction)
+LIST_DIST = []
+for ii in range(len(temp_list)):
+    LIST_DIST.append(temp_list[ii][0])
 
 class AppIFAS(object):
     """
@@ -44,7 +53,7 @@ class AppIFAS(object):
         self.win = tk.Tk()
         self.win.title('iFAS: image fidelity assessment software')
         self.win.configure(background='black')
-        self.win.geometry("1800x900")
+        self.win.geometry("1800x900+70+50")
         self.size = (1700, 500)
 
         self.frame_imgs = tk.LabelFrame(
@@ -69,6 +78,15 @@ class AppIFAS(object):
         self.dummy_img = ifas_misc.logo_image(self.size)
         self.disp_imgs()
 
+        # Creating the progress bar
+        self.frame_progess = tk.Frame(master=self.win, bg="black")
+        self.frame_progess.place(anchor=tk.N, relx=0.5, rely=0.955, relheight=0.035, relwidth=0.5)
+        self.progress_bar = ttk.Progressbar(
+            master=self.frame_progess, orient=tk.HORIZONTAL, mode='determinate', maximum=100, value=0
+            )
+        self.progress_bar.place(relx=0.0, rely=0.0, relheight=1, relwidth=1)
+
+        self.win.resizable(False, False)
         self.win.mainloop()
 
     # Creating the space for the buttons. They will be organized in sections 1 x 5 bellow the images
@@ -170,15 +188,65 @@ class AppIFAS(object):
 
     # Creates a new database and makes it ready to be processed
     def create_data(self):
-        tk.messagebox.showinfo("Information", "DATA CREATED")
+        # Getting the selected directory
+        folder_selected = tk.filedialog.askdirectory(initialdir="/", title="Select source directory", master=self.win)
+        folder_path = pathlib.Path(folder_selected)
+
+        # one liner for getting only the list of valid extensions png, jpg, bmp
+        list_source_imgs = sorted(filter(lambda path: path.suffix in LIST_VALID_EXTENSIONS, folder_path.glob('*')))
+        if len(list_source_imgs) == 0:
+            tk.messagebox.showerror("Error", "Directory is empty!", master=self.win)
+            return
+
+        name_database = tk.filedialog.asksaveasfilename(initialdir="/", title="Name your database", master=self.win)
+        if os.path.exists(name_database) or name_database == '':
+            tk.messagebox.showerror("Error", "Incorrect directory!", master=self.win)
+            return
+
+        # Reading the settings for the type of distortion and the distortion
+        with open(str(folder_path.joinpath('db_settings'))) as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            settings = []
+            for row in csv_reader:
+                settings.append(row)
+            distortion = settings[0][0]
+            dis_levels = list(map(float, settings[1]))
+            if distortion not in LIST_DIST:
+                tk.messagebox.showerror("Error", "Incorrect distortion selection!", master=self.win)
+                return
+
+        # Creating the individual directories per source
+        os.mkdir(name_database)
+        increment = 100. / len(list_source_imgs)
+        for ii in range(len(list_source_imgs)):
+            current_path = pathlib.Path(name_database).joinpath(list_source_imgs[ii].stem)
+            os.mkdir(str(current_path))
+            # Copying the source images to their individual folders as .png
+            current_source = str(current_path.joinpath(current_path.stem + '.png'))
+            img = cv2.imread(str(list_source_imgs[ii]))
+            cv2.imwrite(current_source, img)
+            # Generating the distorted images
+            for jj in range(len(dis_levels)):
+                out_fol = str(
+                    current_path.joinpath(
+                        current_path.stem + '_' + distortion + str(dis_levels[jj]) + '.png'
+                        ))
+                add_distortions.brightness(current_source, lvl=dis_levels[jj], out_folder=out_fol)
+            
+            self.progress_bar['value'] += increment
+            self.frame_progess.update()
+
+        tk.messagebox.showinfo("Information", "DATA CREATED at \n" + name_database, master=self.win)
+        self.progress_bar['value'] = 0
+        self.frame_progess.update()
     
     # Process the most recently loaded/created database using the selected measures
     def process_data(self):
-        tk.messagebox.showinfo("Information", "DATA PROCESSED")
+        tk.messagebox.showinfo("Information", "DATA PROCESSED", master=self.win)
 
     # Load existing data into memory -> main_folder_name_ifas file
     def load_data(self):
-        tk.messagebox.showinfo("Information", "DATA LOADED")
+        tk.messagebox.showinfo("Information", "DATA LOADED", master=self.win)
 
     # Display 2 given images, if not given iFAS logo is displayed
     def disp_imgs(self, img_left=None, img_right=None):
@@ -197,7 +265,3 @@ class AppIFAS(object):
         self.imgtk_right = ImageTk.PhotoImage(img_right)
         self.canvas_left.create_image(0, 0, anchor=tk.NW, image=self.imgtk_left)
         self.canvas_right.create_image(0, 0, anchor=tk.NW, image=self.imgtk_right)
-
-
-if __name__ == "__main__":
-    AppIFAS()
