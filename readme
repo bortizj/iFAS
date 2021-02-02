@@ -29,8 +29,19 @@ between human scores and objective measures.
 
 If you use any of this code please remember to reference the related publications:
 
-B. Ortiz-Jaramillo, A. Kumcu, L. Platisa and W. Philips, "Evaluation of color differences in natural scene color images," Signal Processing: Image Communication, 2019
+B. Ortiz-Jaramillo, et.al., "Evaluation of color differences in natural scene 
+color images," Signal Processing: Image Communication, 2019
+https://www.sciencedirect.com/science/article/abs/pii/S0923596518301863
 
-B. Ortiz-Jaramillo, A. Kumcu, L. Platisa and W. Philips, "Content-aware contrast ratio measure for images," Signal Processing: Image Communication, 2018
+B. Ortiz-Jaramillo, et.al., "Content-aware contrast ratio measure for images," 
+Signal Processing: Image Communication, 2018
+https://www.sciencedirect.com/science/article/abs/pii/S0923596517302606
 
-B. Ortiz-Jaramillo, L. Platisa and W. Philips, "iFAS: Image Fidelity Assessment," Proc. International Workshop on Computational Color Imaging, 2017
+B. Ortiz-Jaramillo, et.al., "iFAS: Image Fidelity Assessment," Proc. International 
+Workshop on Computational Color Imaging, 2017
+https://link.springer.com/chapter/10.1007/978-3-319-56010-6_7
+
+B. Ortiz-Jaramillo, et.al., "Reviewing, selecting and evaluating features in 
+distinguishing fine changes of global texture," Pattern Analysis and Applications, 
+2014
+https://link.springer.com/article/10.1007/s10044-013-0352-8
