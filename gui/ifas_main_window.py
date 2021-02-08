@@ -35,6 +35,7 @@ import sys
 import os
 
 from image_processing import add_distortions
+from image_processing.image_database import ImgDatabase
 import ifas_misc
 
 PATH_FILE = pathlib.Path(__file__).parent.absolute()
@@ -246,6 +247,9 @@ class AppIFAS(object):
 
     # Load existing data into memory -> main_folder_name_ifas file
     def load_data(self):
+        folder_selected = tk.filedialog.askdirectory(initialdir="/", title="Select database directory", master=self.win)
+        db = ImgDatabase(folder_selected)
+        db.print()
         tk.messagebox.showinfo("Information", "DATA LOADED", master=self.win)
 
     # Display 2 given images, if not given iFAS logo is displayed
