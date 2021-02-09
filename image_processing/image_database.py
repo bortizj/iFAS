@@ -15,7 +15,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 author: Benhur Ortiz Jaramillo
 """
 
-
+import tkinter as tk
+import tkinter.ttk as ttk
 import pathlib
 import os
 import numpy as np
@@ -63,7 +64,19 @@ class ProcessHandler(object):
     Class object to initialize the processor
     """
     def __init__(self, db, measures):
-        pass
+        self.main_window = tk.Tk()
+        self.main_window.title('Progress')
+        self.progress_bar_ref = ttk.Progressbar(
+            master=self.main_window, orient=tk.HORIZONTAL, mode='determinate', maximum=100, value=0
+            )
+        self.progress_bar.pack(fill=tk.BOTH, expand=1)
+
+        self.main_window.mainloop()
+
+    def update_progress_bar_value(self, value=1):
+        # Keep updating the master object to redraw the progress bar
+        self.progress_bar['value'] += value
+        self.main_window.update()
 
 
 if __name__ == "__main__":

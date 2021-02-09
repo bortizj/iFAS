@@ -15,9 +15,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 author: Benhur Ortiz Jaramillo
 """
 
-def color_deltaE2000(img_ref, img_tst):
-    pass
-
 
 def color_deltaE(img_ref, img_tst):
-    pass
+    return None
+
+
+def color_deltaE2000(img_ref, img_tst):
+    return None

@@ -16,8 +16,8 @@ author: Benhur Ortiz Jaramillo
 """
 
 def texture_lbp(img_ref, img_tst):
-    pass
+    return None
 
 
 def texture_gabor(img_ref, img_tst):
-    pass
+    return None
