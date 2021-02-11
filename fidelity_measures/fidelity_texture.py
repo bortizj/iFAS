@@ -15,9 +15,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 author: Benhur Ortiz Jaramillo
 """
 
+
+import numpy as np
+
+
 def texture_lbp(img_ref, img_tst):
-    return None
+    return np.nan
 
 
 def texture_gabor(img_ref, img_tst):
-    return None
+    return np.nan

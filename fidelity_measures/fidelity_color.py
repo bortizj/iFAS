@@ -16,9 +16,12 @@ author: Benhur Ortiz Jaramillo
 """
 
 
+import numpy as np
+
+
 def color_deltaE(img_ref, img_tst):
-    return None
+    return np.nan
 
 
 def color_deltaE2000(img_ref, img_tst):
-    return None
+    return np.nan

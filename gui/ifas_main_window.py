@@ -15,6 +15,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 author: Benhur Ortiz Jaramillo
 """
 
+from tkinter.constants import NO
 from PIL import ImageTk, Image
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -23,6 +24,7 @@ import tkinter.filedialog
 from tkinter import font
 import numpy as np
 import importlib
+import threading
 import inspect
 import pathlib
 import shutil
@@ -56,6 +58,8 @@ class AppIFAS(object):
         self.win.configure(background='black')
         self.win.geometry("1800x900+70+50")
         self.size = (1700, 500)
+
+        self.db = None
 
         self.frame_imgs = tk.LabelFrame(
             master=self.win, width=self.size[0], height=self.size[1], bg="black", fg="white", font=18, 
@@ -129,7 +133,7 @@ class AppIFAS(object):
             command=self.process_data)
         self.button_load = tk.Button(
             master=self.frame_data, bg="black", fg="white", activebackground='gray', font=18, text='Load', 
-            command=self.load_data)
+            command=lambda: self.load_data(get_data=True))
         self.button_create.place(anchor=tk.N, relx=0.5, rely=0.01, relheight=0.3, relwidth=0.8)
         self.button_process.place(anchor=tk.N, relx=0.5, rely=0.35, relheight=0.3, relwidth=0.8)
         self.button_load.place(anchor=tk.N, relx=0.5, rely=0.69, relheight=0.3, relwidth=0.8)
@@ -139,13 +143,22 @@ class AppIFAS(object):
         # Guetting the list of python files and functions in each file
         list_files = list(PATH_MEASURES.glob('**/fidelity_*.py'))
         modules = {}
+        modules_list = {}
         for ii in range(len(list_files)):
             current_module = importlib.import_module(str(list_files[ii].stem))
             mod_members = inspect.getmembers(current_module, inspect.isfunction)
             modules[list_files[ii].stem] = []
+            modules_list[list_files[ii].stem] = []
             for jj in range(len(mod_members)):
                 # Getting the function string
                 modules[list_files[ii].stem].append(mod_members[jj][0])
+                modules_list[list_files[ii].stem].append(mod_members[jj])
+            modules_list[list_files[ii].stem].sort()
+            modules_list[list_files[ii].stem] = list(zip(
+                np.argsort(modules[list_files[ii].stem]).tolist(), modules_list[list_files[ii].stem]
+                ))
+            # one liner to remove the index from the zip retunr
+            modules_list[list_files[ii].stem] = [mod[1] for mod in modules_list[list_files[ii].stem]]
             modules[list_files[ii].stem].sort()
 
         # Setting controls for measures
@@ -171,7 +184,8 @@ class AppIFAS(object):
         self.listbox.config(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.listbox.yview)
         self.modules = modules
-        
+        self.modules_list = modules_list
+
     # Setting the controls
     def set_buttons_plots(self):
         # Setting controls for plotting
@@ -233,23 +247,50 @@ class AppIFAS(object):
                         current_path.stem + '_' + distortion + str(dis_levels[jj]) + '.png'
                         ))
                 add_distortions.brightness(current_source, lvl=dis_levels[jj], out_folder=out_fol)
-            
+
             self.progress_bar['value'] += increment
             self.frame_progess.update()
 
         tk.messagebox.showinfo("Information", "DATA CREATED at \n" + name_database, master=self.win)
         self.progress_bar['value'] = 0
         self.frame_progess.update()
-    
-    # Process the most recently loaded/created database using the selected measures
+
+    # Process the most recently loaded or prompt to load a database using the selected measures
     def process_data(self):
-        tk.messagebox.showinfo("Information", "DATA PROCESSED", master=self.win)
+        # TODO logging and verify that the folder actually has a database and that measures were selected
+        modules_selected = self.get_seleted_measures()
+        if self.db is None:
+            self.load_data()
+            self.db.set_test_measures(modules_selected)
+        newthread = threading.Thread(target=self.db.compute_measures)
+        newthread.start()
+
+    # Get the list of measures seleted
+    def get_seleted_measures(self):
+        seleccion = self.listbox.curselection()
+        list_selected = []
+        modules_selected = []
+        for ii in seleccion:
+            current = self.listbox.get(ii)
+            if current in self.modules:
+                list_selected.extend(self.modules[current])
+                modules_selected.extend(self.modules_list[current])
+            elif current not in list_selected:
+                list_selected.append(current)
+                for jj in self.modules:
+                    if current in self.modules[jj]:
+                        modules_selected.append(self.modules_list[jj][self.modules[jj].index(current)])
+
+        return modules_selected
 
     # Load existing data into memory -> main_folder_name_ifas file
-    def load_data(self):
+    def load_data(self, get_data=False):
+        # TODO logging and verify that the folder actually has a database
         folder_selected = tk.filedialog.askdirectory(initialdir="/", title="Select database directory", master=self.win)
-        db = ImgDatabase(folder_selected)
-        db.print()
+        self.db = ImgDatabase(folder_selected)
+        if get_data:
+            self.db.get_csv()
+            print(self.db.data.head(10))
         tk.messagebox.showinfo("Information", "DATA LOADED", master=self.win)
 
     # Display 2 given images, if not given iFAS logo is displayed

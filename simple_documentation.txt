@@ -3,8 +3,6 @@ Python virtual enviroment configuration
 Install anaconda https://www.anaconda.com/
 conda create --name ifas_venv python pip numpy pandas tk matplotlib
 conda activate ifas_venv
-pip install opencv-python
-or 
 conda install -c anaconda opencv
 conda install -c conda-forge pywavelets
 # To use your enviroment while iFAS is running
