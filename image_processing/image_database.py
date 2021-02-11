@@ -33,11 +33,15 @@ class ImgDatabase(object):
     def __init__(self, data_folder):
         self.db_folder = pathlib.Path(data_folder)
         self.get_img_paths()
-        
+
     def set_test_measures(self, measures):
         self.measures = measures
 
+    def set_logger(self, logger):
+        self.logger = logger
+
     def get_img_paths(self):
+        flag = False
         # Removing first row -> It is the root folder
         list_folders = list(self.db_folder.glob('**'))[1:]
         # one liner for getting only the file name of the reference images
@@ -45,14 +49,28 @@ class ImgDatabase(object):
         self.dict_tst = {}
         for ii in range(len(self.list_ref)):
             list_imgs_crt = list(list_folders[ii].glob('*.png'))
+
+            # If any of the selected sub-folders is empty, it is a good indication for wrong selected folder
+            if len(list_imgs_crt) == 0:
+                flag = True
+
             # one liner for getting only the file name of the test images for the current folder
             self.dict_tst[self.list_ref[ii]] = [str(ii_img).split(os.sep)[-1] for ii_img in list_imgs_crt]
             # removing the source image from the list of test images
-            self.dict_tst[self.list_ref[ii]].remove(self.list_ref[ii] + '.png')
+            if self.list_ref[ii] + '.png' in self.dict_tst[self.list_ref[ii]]:
+                self.dict_tst[self.list_ref[ii]].remove(self.list_ref[ii] + '.png')
+            else:
+                flag = True
+        if flag:
+            self.dict_tst = None
+            self.list_ref = None
 
     # Place holder for loading the pandas data frame
     def get_csv(self):
-        self.data = pd.read_csv(str(self.db_folder.joinpath(self.db_folder.name + '_ifas_ouput.csv')))
+        if self.db_folder.joinpath(self.db_folder.name + '_ifas_ouput.csv').is_file():
+            self.data = pd.read_csv(str(self.db_folder.joinpath(self.db_folder.name + '_ifas_ouput.csv')))
+        else:
+            self.data = None
 
     # Place holder for executing the process using the database
     def compute_measures(self):
@@ -66,7 +84,7 @@ class ProcessHandler(object):
     """
     def __init__(self, db, measures):
         self.main_window = tk.Tk()
-        self.main_window.geometry("500x100+500+500") # WidthxHeight+xoffset+yoffset
+        self.main_window.geometry("500x100+700+500") # WidthxHeight+xoffset+yoffset
         self.db = db
         self.measures = measures
         self.main_window.title('Progress')
@@ -117,17 +135,19 @@ class ProcessHandler(object):
                     print(ii, jj, *vals, sep=',', file=f)
 
                 # TODO probably here logging
-                print('Computing', ii, jj, self.measures[kk][0], *vals, sep=', ')
+                msg = ('Computing ' + ii + ', ' + jj + ', ' + ', '.join([str(val) for val in vals]))
+                self.db.logger.print(level='INFO', message=msg)
                 val1 = 100. * (cnt1 + 1) / total_ref
                 val2 = 100. * (cnt2 + 1) / total_tst
                 self.update_progress_bar_value(value1=val1, value2=val2)
                 cnt2 += 1
             cnt1 += 1
 
-        self.label.configure(text='You can close this window!')
         src_dir = tempfile.gettempdir() + r'\temp_ifas_csv'
         dst_dir = str(self.db.db_folder.joinpath(self.db.db_folder.name + '_ifas_ouput.csv'))
         shutil.copy(src_dir, dst_dir)
         tk.messagebox.showinfo("Information", "DATA PROCESSED")
+        self.label.configure(text='You can close this window!')
         self.main_window.update()
+        self.db.logger.print(level='INFO', message='Processing finished!')
         self.main_window.mainloop()

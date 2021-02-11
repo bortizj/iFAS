@@ -18,7 +18,10 @@ row one is the name of the distortion which should be at add_distortions.py
 row two is the levels of distortion in comma separated values
 
 # Run Button
-To run existing database select the folder of the set of source and test images. 
+Select the measures in the measures pane.
+Click Run and select the folder of the set of source and test images. 
+A popup window with progress bar shows the progress of the computations.
+Results in a csv file on the database folder named *_ifas_ouput.csv
 
 # Load Button
 To load existing database select the folder of the set of source and test images 
@@ -26,6 +29,7 @@ as given by the create button or using the following folder hierarchy:
 1. MainDatabase folder contains 
 	1.1. subfolder per reference image. The folder is named as the reference image
 		1.1.1 it contains the reference image with the set of thest images png format.
+	1.n+1. csv file with the results given by run ifas database named *_ifas_ouput.csv
 
 For example:
 1. my_db
@@ -40,3 +44,4 @@ For example:
 		1.1.3. my_test_1.png
 		...
 	...
+	1.n. my_db_ifas_ouput.csv

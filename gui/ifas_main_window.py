@@ -60,6 +60,8 @@ class AppIFAS(object):
         self.size = (1700, 500)
 
         self.db = None
+        
+        self.logger = ifas_misc.Logging()
 
         self.frame_imgs = tk.LabelFrame(
             master=self.win, width=self.size[0], height=self.size[1], bg="black", fg="white", font=18, 
@@ -203,18 +205,27 @@ class AppIFAS(object):
 
     # Creates a new database and makes it ready to be processed
     def create_data(self):
+        self.logger.print(level='INFO', message='Data creation started!')
         # Getting the selected directory
         folder_selected = tk.filedialog.askdirectory(initialdir="/", title="Select source directory", master=self.win)
         folder_path = pathlib.Path(folder_selected)
+        self.logger.print(level='INFO', message='Selected folder ' + str(folder_path))
 
         # one liner for getting only the list of valid extensions png, jpg, bmp
         list_source_imgs = sorted(filter(lambda path: path.suffix in LIST_VALID_EXTENSIONS, folder_path.glob('*')))
         if len(list_source_imgs) == 0:
+            self.logger.print(level='ERROR', message='Directory is empty ' + str(folder_path))
             tk.messagebox.showerror("Error", "Directory is empty!", master=self.win)
+            return
+
+        if not folder_path.joinpath('db_settings').is_file():
+            self.logger.print(level='ERROR', message='Incorrect directory ' + str(folder_path))
+            tk.messagebox.showerror("Error", "Incorrect directory!", master=self.win)
             return
 
         name_database = tk.filedialog.asksaveasfilename(initialdir="/", title="Name your database", master=self.win)
         if os.path.exists(name_database) or name_database == '':
+            self.logger.print(level='ERROR', message='Incorrect directory ' + str(folder_path))
             tk.messagebox.showerror("Error", "Incorrect directory!", master=self.win)
             return
 
@@ -227,6 +238,7 @@ class AppIFAS(object):
             distortion = settings[0][0]
             dis_levels = list(map(float, settings[1]))
             if distortion not in LIST_DIST:
+                self.logger.print(level='ERROR', message='Incorrect distortion selection ' + distortion)
                 tk.messagebox.showerror("Error", "Incorrect distortion selection!", master=self.win)
                 return
 
@@ -246,22 +258,35 @@ class AppIFAS(object):
                     current_path.joinpath(
                         current_path.stem + '_' + distortion + str(dis_levels[jj]) + '.png'
                         ))
-                add_distortions.brightness(current_source, lvl=dis_levels[jj], out_folder=out_fol)
+                getattr(add_distortions, distortion)(current_source, lvl=dis_levels[jj], out_folder=out_fol)
+                self.logger.print(level='INFO', message=out_fol)
 
             self.progress_bar['value'] += increment
             self.frame_progess.update()
 
+        self.logger.print(level='INFO', message="DATA CREATED at \n" + name_database)
         tk.messagebox.showinfo("Information", "DATA CREATED at \n" + name_database, master=self.win)
         self.progress_bar['value'] = 0
         self.frame_progess.update()
 
     # Process the most recently loaded or prompt to load a database using the selected measures
     def process_data(self):
-        # TODO logging and verify that the folder actually has a database and that measures were selected
         modules_selected = self.get_seleted_measures()
+        if len(modules_selected) == 0:
+            self.logger.print(level='ERROR', message='No measures selected ')
+            tk.messagebox.showerror("Error", "No measures selected!", master=self.win)
+            return
+
         if self.db is None:
             self.load_data()
+            if self.db is None:
+                self.logger.print(level='ERROR', message='Wrong database selection ')
+                tk.messagebox.showerror("Error", "Wrong database selection!", master=self.win)
+                return
+
             self.db.set_test_measures(modules_selected)
+        self.logger.print(level='INFO', message='Processing started!')    
+        self.db.set_logger(self.logger)
         newthread = threading.Thread(target=self.db.compute_measures)
         newthread.start()
 
@@ -285,12 +310,25 @@ class AppIFAS(object):
 
     # Load existing data into memory -> main_folder_name_ifas file
     def load_data(self, get_data=False):
-        # TODO logging and verify that the folder actually has a database
+        self.logger.print(level='INFO', message='Loading data started!')
         folder_selected = tk.filedialog.askdirectory(initialdir="/", title="Select database directory", master=self.win)
         self.db = ImgDatabase(folder_selected)
+
+        if self.db.list_ref is None:
+            self.db = None
+            self.logger.print(level='ERROR', message='Wrong database selection ')
+            tk.messagebox.showerror("Error", "Wrong database selection!", master=self.win)
+            return
+
         if get_data:
             self.db.get_csv()
-            print(self.db.data.head(10))
+            if self.db.data is None:
+                self.logger.print(level='WARNING', message='No csv file in database ')
+                tk.messagebox.showerror("Warning", "No csv file in database please reprocese!", master=self.win)
+            else:
+                self.logger.print(level='WARNING', message=self.db.data.head(10))
+
+        self.logger.print(level='INFO', message='Data loaded started!')
         tk.messagebox.showinfo("Information", "DATA LOADED", master=self.win)
 
     # Display 2 given images, if not given iFAS logo is displayed

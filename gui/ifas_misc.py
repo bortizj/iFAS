@@ -18,8 +18,11 @@ author: Benhur Ortiz Jaramillo
 # This file contains helper functions which do not belong to any class
 
 import tkinter as tk
+from datetime import datetime
 import tkinter.ttk as ttk
 import numpy as np
+import pathlib
+import tempfile
 import cv2
 
 # Creates iFas logo image
@@ -43,6 +46,29 @@ def logo_image(size_in):
         font_thickness
         )
     return img
+
+
+class Logging(object):
+    """
+    Class object to initialize the logging functionality
+    """
+    def __init__(self, file_name=None):
+        if file_name is None:
+            file_name = tempfile.gettempdir() + r'\ifas_log.log'
+        self.file_path = pathlib.Path(file_name)
+        if self.file_path.is_file():
+            with open(str(self.file_path), 'a') as f:    
+                print(self.get_time(), 'Logging started', sep=', ', file=f)
+        else:
+            with open(str(self.file_path), 'w') as f:    
+                print(self.get_time(), 'Logging started', sep=', ', file=f)
+
+    def get_time(self):
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+
+    def print(self, level, message):
+        with open(str(self.file_path), 'a') as f:    
+                print(self.get_time(), level, message, sep=', ', file=f)
 
 
 class ProgressBar(object):
