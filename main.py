@@ -21,7 +21,7 @@ import sys
 PATH_FILE = pathlib.Path(__file__).parent.absolute()
 PATH_MEASURES = PATH_FILE.joinpath('fidelity_measures')
 PATH_GUI = PATH_FILE.joinpath('gui')
-PATH_IMG_PROC = PATH_FILE.joinpath('image_processing')
+PATH_IMG_PROC = PATH_FILE.joinpath('processing')
 sys.path.append(str(PATH_MEASURES))
 sys.path.append(str(PATH_GUI))
 

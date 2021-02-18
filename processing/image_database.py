@@ -26,6 +26,9 @@ import numpy as np
 import pandas as pd
 import cv2
 
+from processing.ifas_stats import compute_1dcorrelations
+from gui import ifas_misc
+
 class ImgDatabase(object):
     """
     Class object to initialize the database of images
@@ -76,6 +79,68 @@ class ImgDatabase(object):
     def compute_measures(self):
         psh = ProcessHandler(self, self.measures)
         psh.process_data()
+
+    # Computing the correlations for the set of data
+    def compute_correlations(self):
+        # First 2 columns are the file names
+        p, s, t, pd = compute_1dcorrelations(self.data.values[::, 2:])
+        self.pearson = p
+        self.spearman = s
+        self.tau = t
+        self.dist_corr = pd
+        self.save_correlations()
+        ifas_misc.heat_map(p, s, pd, t)
+
+    # Storing correlations as csv
+    def save_correlations(self):
+        # Storing the computed correlations as csv files
+        list_measures = self.get_list_measures_dataframe()
+        list_measures.insert(0, ' ')
+
+        dst_dir = self.db_folder.joinpath(self.db_folder.name + '_ifas_pearson.csv')
+        np.savetxt(str(dst_dir), np.array(list_measures).reshape(1, -1), delimiter=',', fmt='%s')
+        with open(str(dst_dir), "ab") as f:
+            np.savetxt(
+                f, np.hstack((np.array(list_measures[1:]).reshape(-1, 1), self.pearson)), delimiter=',', fmt='%s'
+                )
+
+        dst_dir = self.db_folder.joinpath(self.db_folder.name + '_ifas_spearman.csv')
+        np.savetxt(str(dst_dir), np.array(list_measures).reshape(1, -1), delimiter=',', fmt='%s')
+        with open(str(dst_dir), "ab") as f:
+            np.savetxt(
+                f, np.hstack((np.array(list_measures[1:]).reshape(-1, 1), self.spearman)), delimiter=',', fmt='%s'
+                )
+
+        dst_dir = self.db_folder.joinpath(self.db_folder.name + '_ifas_tau.csv')
+        np.savetxt(str(dst_dir), np.array(list_measures).reshape(1, -1), delimiter=',', fmt='%s')
+        with open(str(dst_dir), "ab") as f:
+            np.savetxt(
+                f, np.hstack((np.array(list_measures[1:]).reshape(-1, 1), self.tau)), delimiter=',', fmt='%s'
+                )
+
+        dst_dir = self.db_folder.joinpath(self.db_folder.name + '_ifas_dist_corr.csv')
+        np.savetxt(str(dst_dir), np.array(list_measures).reshape(1, -1), delimiter=',', fmt='%s')
+        with open(str(dst_dir), "ab") as f:
+            np.savetxt(
+                f, np.hstack((np.array(list_measures[1:]).reshape(-1, 1), self.dist_corr)), delimiter=',', fmt='%s'
+                )
+
+    # Getting the highest correlations from the correlation matrix
+    def get_highest_corr(self):
+        dist_corr = np.triu(self.dist_corr)
+        for ii in range(dist_corr.shape[0]):
+            dist_corr[ii, ii] = 0
+
+        dist_corr_arr = np.ravel(dist_corr)
+        dist_corr_arr = np.abs(dist_corr_arr)
+        idx = np.argsort(dist_corr_arr)[::-1]
+        idx = np.unravel_index(idx[0:5], self.dist_corr.shape)
+        vals = dist_corr[idx]
+
+        return vals, idx
+
+    def get_list_measures_dataframe(self):
+        return list(self.data.columns)[2:]
 
 
 class ProcessHandler(object):

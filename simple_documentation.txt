@@ -1,11 +1,12 @@
-Python virtual enviroment configuration
+Python virtual environment configuration
 ---------------------------------------
 Install anaconda https://www.anaconda.com/
 conda create --name ifas_venv python pip numpy pandas tk matplotlib
 conda activate ifas_venv
+conda install -c anaconda scipy
 conda install -c anaconda opencv
 conda install -c conda-forge pywavelets
-# To use your enviroment while iFAS is running
+# To use your environment while iFAS is running
 conda deactivate
 # Or use the requirements file
 conda create --name ifas_venv --file requirements.txt
@@ -28,7 +29,7 @@ To load existing database select the folder of the set of source and test images
 as given by the create button or using the following folder hierarchy:
 1. MainDatabase folder contains 
 	1.1. subfolder per reference image. The folder is named as the reference image
-		1.1.1 it contains the reference image with the set of thest images png format.
+		1.1.1 it contains the reference image with the set of test images png format.
 	1.n+1. csv file with the results given by run ifas database named *_ifas_ouput.csv
 
 For example:
@@ -45,3 +46,12 @@ For example:
 		...
 	...
 	1.n. my_db_ifas_ouput.csv
+	
+# Correlation button
+After loading an examination, it is possible to compute correlations between the 
+measures available in the csv file that should be together with your database 
+(see Run button for details). The results is the legend of the measures together 
+with a heat map of the correlations. The correlations are exported as csv files 
+in the database directory: *_ifas_dist_corr.csv, _ifas_pearson.csv, 
+_ifas_spearman.csv and _ifas_tau.csv. In the correlations pane information related 
+to the top five correlations is shown.

@@ -20,6 +20,7 @@ from PIL import ImageTk, Image
 import tkinter as tk
 import tkinter.ttk as ttk
 import tkinter.messagebox
+from tkinter import scrolledtext
 import tkinter.filedialog
 from tkinter import font
 import numpy as np
@@ -36,8 +37,8 @@ import csv
 import sys
 import os
 
-from image_processing import add_distortions
-from image_processing.image_database import ImgDatabase
+from processing import add_distortions
+from processing.image_database import ImgDatabase
 import ifas_misc
 
 PATH_FILE = pathlib.Path(__file__).parent.absolute()
@@ -81,6 +82,9 @@ class AppIFAS(object):
         self.set_control_frames()
         self.set_buttons_data()
         self.set_buttons_measures()
+        self.set_buttons_stats()
+        self.set_buttons_plots()
+        self.set_buttons_models()
 
         self.dummy_img = ifas_misc.logo_image(self.size)
         self.disp_imgs()
@@ -106,13 +110,13 @@ class AppIFAS(object):
             master=self.frame_ctrl, width=int(self.size[0] / 5) - 10, height=self.size[1] - 200, bg="black", fg="white", 
             font=18, text='Measures'
             )
-        self.frame_plots = tk.LabelFrame(
-            master=self.frame_ctrl, width=int(self.size[0] / 5) - 10, height=self.size[1] - 200, bg="black", fg="white", 
-            font=18, text='Plotting'
-            )
         self.frame_stats = tk.LabelFrame(
             master=self.frame_ctrl, width=int(self.size[0] / 5) - 10, height=self.size[1] - 200, bg="black", fg="white", 
             font=18, text='Statistics'
+            )
+        self.frame_plots = tk.LabelFrame(
+            master=self.frame_ctrl, width=int(self.size[0] / 5) - 10, height=self.size[1] - 200, bg="black", fg="white", 
+            font=18, text='Plotting'
             )
         self.frame_models = tk.LabelFrame(
             master=self.frame_ctrl, width=int(self.size[0] / 5) - 10, height=self.size[1] - 200, bg="black", fg="white", 
@@ -120,8 +124,8 @@ class AppIFAS(object):
             )
         self.frame_data.place(x=0, y=0)
         self.frame_measures.place(x=int(self.size[0] / 5), y=0)
-        self.frame_plots.place(x=int(2 * self.size[0] / 5), y=0)
-        self.frame_stats.place(x=int(3 * self.size[0] / 5), y=0)
+        self.frame_stats.place(x=int(2 * self.size[0] / 5), y=0)
+        self.frame_plots.place(x=int(3 * self.size[0] / 5), y=0)
         self.frame_models.place(x=int(4 * self.size[0] / 5), y=0)
 
     # Setting the controls
@@ -196,7 +200,12 @@ class AppIFAS(object):
     # Setting the controls
     def set_buttons_stats(self):
         # Setting controls for stats
-        pass
+        self.button_correlations = tk.Button(
+            master=self.frame_stats, bg="black", fg="white", activebackground='gray', font=18, text='Correlations', 
+            command=self.compute_correlations)
+        self.button_correlations.place(anchor=tk.N, relx=0.5, rely=0.01, relheight=0.25, relwidth=0.8)
+        self.edit_corr_area = scrolledtext.ScrolledText(master=self.frame_stats, wrap=tk.WORD)
+        self.edit_corr_area.place(relx=0.005, rely=0.3, relheight=0.75, relwidth=0.99)
 
     # Setting the controls
     def set_buttons_models(self):
@@ -328,8 +337,44 @@ class AppIFAS(object):
             else:
                 self.logger.print(level='WARNING', message=self.db.data.head(10))
 
-        self.logger.print(level='INFO', message='Data loaded started!')
+        self.logger.print(level='INFO', message='Data loaded finished!')
         tk.messagebox.showinfo("Information", "DATA LOADED", master=self.win)
+
+    # Computes correlation on the exiting measures
+    def compute_correlations(self):
+        self.logger.print(level='INFO', message='Computing correlations started ')
+        if self.db is None:
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        if not hasattr(self.db, 'data'):
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        self.db.compute_correlations()
+        self.show_corr_summary()
+        self.logger.print(level='INFO', message='Correlations computed finished ')
+        tk.messagebox.showinfo("Information", "CORRELATIONS COMPUTED:\n See the heat map plot window!", master=self.win)
+
+    def show_corr_summary(self):
+        vals, idx = self.db.get_highest_corr()
+        self.edit_corr_area.insert(tk.INSERT, '----Distance correlation summary----' + '\n')
+        self.edit_corr_area.insert(tk.INSERT, 'Top 5 correlations:'+ '\n')
+        # Printing the top 5 correlation values
+        for ii in range(len(vals)):
+            self.edit_corr_area.insert(
+                tk.INSERT, 'N' + str(ii + 1) + ' -> (' + str(idx[0][ii]) + ',' + str(idx[1][ii]) + '): ' + str(vals[ii]) 
+                + '\n'
+                )
+        # Printing the measure names
+        self.edit_corr_area.insert(tk.INSERT, 'Legend of measures:'+ '\n')
+        measures_name = self.db.get_list_measures_dataframe()
+        for ii in range(len(measures_name)):
+            self.edit_corr_area.insert(tk.INSERT, str(ii) + ' - ' + measures_name[ii] + '\n')
+            # if ii in idx[0] or ii in idx[1]:
+            #     self.edit_corr_area.insert(tk.INSERT, str(ii) + ' - ' + measures_name[ii] + '\n')
 
     # Display 2 given images, if not given iFAS logo is displayed
     def disp_imgs(self, img_left=None, img_right=None):

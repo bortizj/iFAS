@@ -24,6 +24,7 @@ import numpy as np
 import pathlib
 import tempfile
 import cv2
+import matplotlib.pyplot as plt
 
 # Creates iFas logo image
 def logo_image(size_in):
@@ -111,3 +112,47 @@ class Radiobutton(object):
 
     def selection(self):
         return self.var.get()
+
+
+def heat_map(pearson, spearman, ccd, tau):
+    fig, ((map_pearson, map_spearman), (map_ccd, map_tau)) = plt.subplots(2, 2)
+    fig.canvas.set_window_title('Correlation heat map plot')
+    map_pearson.tick_params(labelsize=16)
+    map_spearman.tick_params(labelsize=16)
+    map_ccd.tick_params(labelsize=16)
+    map_tau.tick_params(labelsize=16)
+
+    map_pearson.imshow(np.abs(pearson), vmin=0., vmax=1., interpolation='none', aspect='equal', origin='lower', cmap='inferno')
+    map_spearman.imshow(np.abs(spearman), vmin=0., vmax=1., interpolation='none', aspect='equal', origin='lower', cmap='inferno')
+    map_ccd.imshow(np.abs(ccd), vmin=0., vmax=1., interpolation='none', aspect='equal', origin='lower', cmap='inferno')
+    axxes = map_tau.imshow(np.abs(tau), vmin=0., vmax=1., interpolation='none', aspect='equal', origin='lower', cmap='inferno')
+
+    map_pearson.set_xticks(range(pearson.shape[1]))
+    map_pearson.set_yticks(range(pearson.shape[0]))
+    map_pearson.set_xticklabels(range(pearson.shape[1]), fontdict={'fontweight': 16})
+    map_pearson.set_yticklabels(range(pearson.shape[0]), fontdict={'fontweight': 16})
+    map_spearman.set_xticks(range(pearson.shape[1]))
+    map_spearman.set_yticks(range(pearson.shape[0]))
+    map_spearman.set_xticklabels(range(spearman.shape[1]), fontdict={'fontweight': 16})
+    map_spearman.set_yticklabels(range(spearman.shape[0]), fontdict={'fontweight': 16})
+    map_ccd.set_xticks(range(pearson.shape[1]))
+    map_ccd.set_yticks(range(pearson.shape[0]))
+    map_ccd.set_xticklabels(range(ccd.shape[1]), fontdict={'fontweight': 16})
+    map_ccd.set_yticklabels(range(ccd.shape[0]), fontdict={'fontweight': 16})
+    map_tau.set_xticks(range(pearson.shape[1]))
+    map_tau.set_yticks(range(pearson.shape[0]))
+    map_tau.set_xticklabels(range(tau.shape[1]), fontdict={'fontweight': 16})
+    map_tau.set_yticklabels(range(tau.shape[0]), fontdict={'fontweight': 16})
+
+    cax = fig.add_axes([0.925, 0.1, 0.03, 0.8])
+    cbar = fig.colorbar(axxes, cax=cax)
+    cbar.ax.tick_params(labelsize=16)
+
+    map_pearson.set_title('Pearson', fontsize=16)
+    map_spearman.set_title('Spearman', fontsize=16)
+    map_ccd.set_title('Distance correlation', fontsize=16)
+    map_tau.set_title('tau', fontsize=16)
+    plt.get_current_fig_manager().window.showMaximized()
+
+    plt.subplots_adjust(top=0.95, bottom=0.1, left=0.05, right=0.95, hspace=0.2, wspace=0.05)
+    plt.show(block=False)

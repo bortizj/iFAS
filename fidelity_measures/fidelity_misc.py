@@ -19,7 +19,7 @@ import numpy as np
 import pywt
 import cv2
 
-import image_processing.img_misc as misc
+import processing.img_misc as misc
 
 
 def psnr(ref_img, tst_img):
