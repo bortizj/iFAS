@@ -48,10 +48,29 @@ For example:
 	1.n. my_db_ifas_ouput.csv
 	
 # Correlation button
-After loading an examination, it is possible to compute correlations between the 
+After loading a database, it is possible to compute correlations between the 
 measures available in the csv file that should be together with your database 
 (see Run button for details). The results is the legend of the measures together 
 with a heat map of the correlations. The correlations are exported as csv files 
 in the database directory: *_ifas_dist_corr.csv, _ifas_pearson.csv, 
 _ifas_spearman.csv and _ifas_tau.csv. In the correlations pane information related 
 to the top five correlations is shown.
+
+# Scatter plot button
+After loading a database, it is possible to display a scatter plot of the data. 
+A new window appear with one of the measures in the x axis and the another measure 
+in the y axis (the axis are labeled correspondly to the measure). The plot 
+can be controlled using the left, right, up and down keys in order to change 
+between the different measures.
+
+# Bar plot button
+After computing correlations between the measures, it is possible to display a 
+bar plot of the correlations of each measure agaianst the target variable.
+In iFAS the atarget variable is always the last column of the csv file of the 
+database. This column can be modified by the user to include for instance 
+human evaluations.
+
+# Box plot button
+After loading a database, it is possible to show the correlation against the 
+target variable for each measure in form of the box plot. Each box represents 
+the correlation distribution for each source variable. 
