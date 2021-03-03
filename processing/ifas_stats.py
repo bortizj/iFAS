@@ -30,7 +30,16 @@ def dis_correlation(x, y):
     return np.sqrt(dcov2_xy) / np.sqrt((np.sqrt(dcov2_xx) * np.sqrt(dcov2_yy)))
 
 
-def compute_1dcorrelations(data):
+def compute_1dcorrelations(data, data_y=None):
+    if data_y is not None:
+        # if second data is given then only single correlation is computed
+        p, __ = stats.pearsonr(data.ravel(), data_y.ravel())
+        s, __ = stats.spearmanr(data.ravel(), data_y.ravel())
+        t, __ = stats.kendalltau(data.ravel(), data_y.ravel())
+        pd = dis_correlation(data, data_y)
+
+        return p, s, t, pd
+
     p = np.zeros((data.shape[1], data.shape[1]))
     s = np.zeros((data.shape[1], data.shape[1]))
     t = np.zeros((data.shape[1], data.shape[1]))

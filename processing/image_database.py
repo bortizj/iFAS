@@ -23,11 +23,12 @@ import pathlib
 import shutil
 import os
 import numpy as np
+from numpy.core.numeric import correlate
 import pandas as pd
 import cv2
 
 from processing.ifas_stats import compute_1dcorrelations
-from gui import ifas_misc
+from gui import ifas_plotting
 
 class ImgDatabase(object):
     """
@@ -89,7 +90,31 @@ class ImgDatabase(object):
         self.tau = t
         self.dist_corr = pd
         self.save_correlations()
-        ifas_misc.heat_map(p, s, pd, t)
+        ifas_plotting.heat_map(p, s, pd, t)
+
+    # Computing the correlations for the set of data against the target coulumn
+    def get_correlations_with(self, idx):
+        correlations = np.vstack((
+            self.pearson[::, idx], self.spearman[::, idx], self.tau[::, idx] , self.dist_corr[::, idx]
+            )).T
+        correlations = np.delete(correlations, idx, 0)
+        return correlations
+
+    # Computing the correlations for the set of data per source
+    def compute_correlations_per_source(self, idx):
+        n_var = self.data.values[::, 2:].shape[1]
+        n_ref = len(self.list_ref)
+        correlations = np.zeros((n_ref, n_var, 4))
+        for ii in range(n_ref):
+            for jj in range(n_var):
+                idx_s = np.where(self.data.values[::, 0] == self.list_ref[ii])
+                p, s, t, pd = compute_1dcorrelations(self.data.values[idx_s, jj + 2].T, self.data.values[idx_s, idx].T)
+                correlations[ii, jj, 0], correlations[ii, jj, 1], correlations[ii, jj, 2], correlations[ii, jj, 3] = (
+                    p, s, t, pd
+                    )
+        # First 2 columns are the file names
+        correlations = np.delete(correlations, idx, 1)
+        return correlations
 
     # Storing correlations as csv
     def save_correlations(self):
@@ -141,6 +166,9 @@ class ImgDatabase(object):
 
     def get_list_measures_dataframe(self):
         return list(self.data.columns)[2:]
+
+    def get_data(self):
+        return self.data.values[::, 2:]
 
 
 class ProcessHandler(object):

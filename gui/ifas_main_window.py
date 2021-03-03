@@ -15,7 +15,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 author: Benhur Ortiz Jaramillo
 """
 
-from tkinter.constants import NO
 from PIL import ImageTk, Image
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -39,7 +38,7 @@ import os
 
 from processing import add_distortions
 from processing.image_database import ImgDatabase
-import ifas_misc
+import ifas_misc, ifas_plotting
 
 PATH_FILE = pathlib.Path(__file__).parent.absolute()
 PATH_MEASURES = PATH_FILE.parents[0].joinpath('fidelity_measures')
@@ -195,7 +194,23 @@ class AppIFAS(object):
     # Setting the controls
     def set_buttons_plots(self):
         # Setting controls for plotting
-        pass
+        self.button_scatter = tk.Button(
+            master=self.frame_plots, bg="black", fg="white", activebackground='gray', font=18, text='Scatter', 
+            command=self.scatter_plot)
+        self.button_bar = tk.Button(
+            master=self.frame_plots, bg="black", fg="white", activebackground='gray', font=18, text='Bar', 
+            command=self.bar_plot)
+        self.button_box = tk.Button(
+            master=self.frame_plots, bg="black", fg="white", activebackground='gray', font=18, text='Box', 
+            command=self.box_plot)
+        self.button_reg = tk.Button(
+            master=self.frame_plots, bg="black", fg="white", activebackground='gray', font=18, text='Regression', 
+            command=self.reg_plot)
+
+        self.button_scatter.place(anchor=tk.N, relx=0.5, rely=0.02, relheight=0.215, relwidth=0.8)
+        self.button_bar.place(anchor=tk.N, relx=0.5, rely=0.27, relheight=0.215, relwidth=0.8)
+        self.button_box.place(anchor=tk.N, relx=0.5, rely=0.52, relheight=0.215, relwidth=0.8)
+        self.button_reg.place(anchor=tk.N, relx=0.5, rely=0.77, relheight=0.215, relwidth=0.8)
 
     # Setting the controls
     def set_buttons_stats(self):
@@ -358,6 +373,7 @@ class AppIFAS(object):
         self.logger.print(level='INFO', message='Correlations computed finished ')
         tk.messagebox.showinfo("Information", "CORRELATIONS COMPUTED:\n See the heat map plot window!", master=self.win)
 
+    # Shoes the correlation summary on the exiting measures
     def show_corr_summary(self):
         vals, idx = self.db.get_highest_corr()
         self.edit_corr_area.insert(tk.INSERT, '----Distance correlation summary----' + '\n')
@@ -375,6 +391,86 @@ class AppIFAS(object):
             self.edit_corr_area.insert(tk.INSERT, str(ii) + ' - ' + measures_name[ii] + '\n')
             # if ii in idx[0] or ii in idx[1]:
             #     self.edit_corr_area.insert(tk.INSERT, str(ii) + ' - ' + measures_name[ii] + '\n')
+
+    # Scatter plot of the available data matrix
+    def scatter_plot(self):
+        self.logger.print(level='INFO', message='Scatter plot started ')
+        if self.db is None:
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        if not hasattr(self.db, 'data'):
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        self.scatter = ifas_plotting.ScatterPlotWithHistograms(self.db.get_data(), self.db.get_list_measures_dataframe())
+        tk.messagebox.showinfo("Information", "See the scatter plot window!", master=self.win)
+
+    # Bar plot of the available correlations between mesures
+    def bar_plot(self):
+        self.logger.print(level='INFO', message='Bar plot started ')
+        if self.db is None:
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        if not hasattr(self.db, 'data'):
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        if not hasattr(self.db, 'dist_corr'):
+            self.logger.print(level='ERROR', message='No correlation available ')
+            tk.messagebox.showerror("Error", "No correlation available!", master=self.win)
+            return
+
+        correlations = self.db.get_correlations_with(idx=-1)
+        list_meas = self.db.get_list_measures_dataframe()
+        del list_meas[-1]
+        ifas_plotting.bar_plot(
+            correlations, axes_labels=list_meas, target_var_idx=self.db.get_list_measures_dataframe()[-1]
+            )
+
+        tk.messagebox.showinfo("Information", "See the Bar plot window!", master=self.win)
+
+    # Box plot of the available correlations between mesures per source
+    def box_plot(self):
+        self.logger.print(level='INFO', message='Box plot started ')
+        if self.db is None:
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        if not hasattr(self.db, 'data'):
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        correlations = self.db.compute_correlations_per_source(idx=-1)
+        list_meas = self.db.get_list_measures_dataframe()
+        del list_meas[-1]
+        ifas_plotting.box_plot(
+            correlations, axes_labels=list_meas, target_var_idx=self.db.get_list_measures_dataframe()[-1]
+            )
+
+        tk.messagebox.showinfo("Information", "See the Box plot window!", master=self.win)
+
+    # Regression plot of available measures with the dmos
+    def reg_plot(self):
+        self.logger.print(level='INFO', message='Regression plot started ')
+        if self.db is None:
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        if not hasattr(self.db, 'data'):
+            self.logger.print(level='ERROR', message='No database selected ')
+            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+            return
+
+        tk.messagebox.showinfo("Information", "See the Regression plot window!", master=self.win)
 
     # Display 2 given images, if not given iFAS logo is displayed
     def disp_imgs(self, img_left=None, img_right=None):
