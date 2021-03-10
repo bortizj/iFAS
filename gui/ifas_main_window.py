@@ -27,13 +27,8 @@ import importlib
 import threading
 import inspect
 import pathlib
-import shutil
-import pandas
-import time
-import glob
 import cv2
 import csv
-import sys
 import os
 
 from processing import add_distortions
@@ -73,6 +68,33 @@ class AppIFAS(object):
         self.canvas_right = tk.Canvas(master=self.frame_imgs, width=self.size[0] / 2 - 25, height=self.size[1] - 50)
         self.canvas_left.place(x=15, y=10)
         self.canvas_right.place(x=self.size[0] / 2 + 5, y=10)
+
+        left_arrow = cv2.imread(str(PATH_FILE.joinpath('left.png')), cv2.IMREAD_UNCHANGED)
+        left_arrow = cv2.cvtColor(left_arrow, cv2.COLOR_BGRA2RGBA)
+        left_arrow = Image.fromarray(left_arrow)
+        self.left_arrow = ImageTk.PhotoImage(left_arrow)
+        right_arrow = cv2.imread(str(PATH_FILE.joinpath('right.png')), cv2.IMREAD_UNCHANGED)
+        right_arrow = cv2.cvtColor(right_arrow, cv2.COLOR_BGRA2RGBA)
+        right_arrow = Image.fromarray(right_arrow)
+        self.right_arrow = ImageTk.PhotoImage(right_arrow)
+
+        self.button_left_ref = tk.Button(
+            master=self.frame_imgs, bg="black", fg="white", activebackground='gray', image=self.left_arrow, 
+            command=lambda: self.image_changed(button='ref_left'))
+        self.button_right_ref = tk.Button(
+            master=self.frame_imgs, bg="black", fg="white", activebackground='gray', image=self.right_arrow, 
+            command=lambda: self.image_changed(button='ref_right'))
+        self.button_left_tst = tk.Button(
+            master=self.frame_imgs, bg="black", fg="white", activebackground='gray', image=self.left_arrow, 
+            command=lambda: self.image_changed(button='tst_left'))
+        self.button_right_tst = tk.Button(
+            master=self.frame_imgs, bg="black", fg="white", activebackground='gray', image=self.right_arrow, 
+            command=lambda: self.image_changed(button='tst_right'))
+
+        self.button_left_ref.place(relx=0.25 - 0.025, rely=-0.02, relheight=0.05, relwidth=0.03)
+        self.button_right_ref.place(relx=0.25, rely=-0.02, relheight=0.05, relwidth=0.03)
+        self.button_left_tst.place(relx=0.75 - 0.025, rely=-0.02, relheight=0.05, relwidth=0.03)
+        self.button_right_tst.place(relx=0.75, rely=-0.02, relheight=0.05, relwidth=0.03)
 
         self.frame_ctrl = tk.Label(
             master=self.win, width=self.size[0], height=self.size[1] - 200, bg="black", fg="white"
@@ -348,9 +370,19 @@ class AppIFAS(object):
             self.db.get_csv()
             if self.db.data is None:
                 self.logger.print(level='WARNING', message='No csv file in database ')
-                tk.messagebox.showerror("Warning", "No csv file in database please reprocese!", master=self.win)
+                tk.messagebox.showerror("Warning", "No csv file in database please reprocess!", master=self.win)
             else:
                 self.logger.print(level='WARNING', message=self.db.data.head(10))
+
+        self.ref_img_idx = 0
+        self.tst_img_idx = 0
+        crt_ref = self.db.db_folder.joinpath(
+            self.db.list_ref[self.ref_img_idx], self.db.list_ref[self.ref_img_idx] + '.png'
+            )
+        crt_tst = self.db.db_folder.joinpath(
+            self.db.list_ref[self.ref_img_idx], self.db.dict_tst[self.db.list_ref[self.ref_img_idx]][self.tst_img_idx]
+            )
+        self.disp_imgs(img_left=str(crt_ref), img_right=str(crt_tst))
 
         self.logger.print(level='INFO', message='Data loaded finished!')
         tk.messagebox.showinfo("Information", "DATA LOADED", master=self.win)
@@ -358,14 +390,7 @@ class AppIFAS(object):
     # Computes correlation on the exiting measures
     def compute_correlations(self):
         self.logger.print(level='INFO', message='Computing correlations started ')
-        if self.db is None:
-            self.logger.print(level='ERROR', message='No database selected ')
-            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
-            return
-
-        if not hasattr(self.db, 'data'):
-            self.logger.print(level='ERROR', message='No database selected ')
-            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+        if not self.verify_db():
             return
 
         self.db.compute_correlations()
@@ -395,14 +420,7 @@ class AppIFAS(object):
     # Scatter plot of the available data matrix
     def scatter_plot(self):
         self.logger.print(level='INFO', message='Scatter plot started ')
-        if self.db is None:
-            self.logger.print(level='ERROR', message='No database selected ')
-            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
-            return
-
-        if not hasattr(self.db, 'data'):
-            self.logger.print(level='ERROR', message='No database selected ')
-            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+        if not self.verify_db():
             return
 
         self.scatter = ifas_plotting.ScatterPlotWithHistograms(self.db.get_data(), self.db.get_list_measures_dataframe())
@@ -411,14 +429,7 @@ class AppIFAS(object):
     # Bar plot of the available correlations between mesures
     def bar_plot(self):
         self.logger.print(level='INFO', message='Bar plot started ')
-        if self.db is None:
-            self.logger.print(level='ERROR', message='No database selected ')
-            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
-            return
-
-        if not hasattr(self.db, 'data'):
-            self.logger.print(level='ERROR', message='No database selected ')
-            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+        if not self.verify_db():
             return
 
         if not hasattr(self.db, 'dist_corr'):
@@ -438,14 +449,7 @@ class AppIFAS(object):
     # Box plot of the available correlations between mesures per source
     def box_plot(self):
         self.logger.print(level='INFO', message='Box plot started ')
-        if self.db is None:
-            self.logger.print(level='ERROR', message='No database selected ')
-            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
-            return
-
-        if not hasattr(self.db, 'data'):
-            self.logger.print(level='ERROR', message='No database selected ')
-            tk.messagebox.showerror("Error", "No database selected!", master=self.win)
+        if not self.verify_db():
             return
 
         correlations = self.db.compute_correlations_per_source(idx=-1)
@@ -460,17 +464,52 @@ class AppIFAS(object):
     # Regression plot of available measures with the dmos
     def reg_plot(self):
         self.logger.print(level='INFO', message='Regression plot started ')
+        if not self.verify_db():
+            return
+
+        tk.messagebox.showinfo("Information", "See the Regression plot window!", master=self.win)
+
+    # Image changed 
+    def image_changed(self, button=None):
+        self.logger.print(level='INFO', message='Image change started ')
+        if not self.verify_db():
+            return
+
+        if button == 'ref_left':
+            self.ref_img_idx -= 1
+        elif button == 'ref_right':
+            self.ref_img_idx += 1
+        elif button == 'tst_left':
+            self.tst_img_idx -= 1
+        elif button == 'tst_right':
+            self.tst_img_idx += 1
+
+        self.ref_img_idx = int(np.clip(self.ref_img_idx, 0, len(self.db.list_ref) - 1))
+        self.tst_img_idx = int(
+            np.clip(self.tst_img_idx, 0, len(self.db.dict_tst[self.db.list_ref[self.ref_img_idx]]) - 1)
+            )
+
+        crt_ref = self.db.db_folder.joinpath(
+            self.db.list_ref[self.ref_img_idx], self.db.list_ref[self.ref_img_idx] + '.png'
+            )
+        crt_tst = self.db.db_folder.joinpath(
+            self.db.list_ref[self.ref_img_idx], self.db.dict_tst[self.db.list_ref[self.ref_img_idx]][self.tst_img_idx]
+            )
+        self.disp_imgs(img_left=str(crt_ref), img_right=str(crt_tst))
+        self.logger.print(level='INFO', message='Image change finished ')
+
+    def verify_db(self):
         if self.db is None:
             self.logger.print(level='ERROR', message='No database selected ')
             tk.messagebox.showerror("Error", "No database selected!", master=self.win)
-            return
+            return False
 
         if not hasattr(self.db, 'data'):
             self.logger.print(level='ERROR', message='No database selected ')
             tk.messagebox.showerror("Error", "No database selected!", master=self.win)
-            return
+            return False
 
-        tk.messagebox.showinfo("Information", "See the Regression plot window!", master=self.win)
+        return True
 
     # Display 2 given images, if not given iFAS logo is displayed
     def disp_imgs(self, img_left=None, img_right=None):
@@ -480,7 +519,9 @@ class AppIFAS(object):
             img_right = self.dummy_img
         else:
             img_left = cv2.imread(img_left)
+            img_left = cv2.cvtColor(img_left, cv2.COLOR_BGR2RGB)
             img_right = cv2.imread(img_right)
+            img_right = cv2.cvtColor(img_right, cv2.COLOR_BGR2RGB)
 
         # Setting images in the canvas
         img_left = Image.fromarray(img_left)
