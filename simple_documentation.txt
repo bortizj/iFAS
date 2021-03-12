@@ -74,3 +74,7 @@ human evaluations.
 After loading a database, it is possible to show the correlation against the 
 target variable for each measure in form of the box plot. Each box represents 
 the correlation distribution for each source variable. 
+
+# Navigation buttons on top of the images
+Left or Right to move across the reference image (left frame) and the test 
+images (right frame).

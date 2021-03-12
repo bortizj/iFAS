@@ -63,11 +63,13 @@ class AppIFAS(object):
             text='Image view'
             )
         self.frame_imgs.place(x=50, y=25)
-        # self.frame_imgs.pack(fill=tk.BOTH, side=tk.TOP)
         self.canvas_left = tk.Canvas(master=self.frame_imgs, width=self.size[0] / 2 - 25, height=self.size[1] - 50)
         self.canvas_right = tk.Canvas(master=self.frame_imgs, width=self.size[0] / 2 - 25, height=self.size[1] - 50)
         self.canvas_left.place(x=15, y=10)
         self.canvas_right.place(x=self.size[0] / 2 + 5, y=10)
+
+        self.canvas_left.bind('<Button-1>', lambda event: self.click_on_image(canvas='ref'))
+        self.canvas_right.bind('<Button-1>', lambda event: self.click_on_image(canvas='tst'))
 
         left_arrow = cv2.imread(str(PATH_FILE.joinpath('left.png')), cv2.IMREAD_UNCHANGED)
         left_arrow = cv2.cvtColor(left_arrow, cv2.COLOR_BGRA2RGBA)
@@ -518,9 +520,12 @@ class AppIFAS(object):
             img_left = self.dummy_img
             img_right = self.dummy_img
         else:
+            dim = (int(self.size[0] / 2 - 25), int(self.size[1] - 50))
             img_left = cv2.imread(img_left)
+            img_left = cv2.resize(img_left, dim)
             img_left = cv2.cvtColor(img_left, cv2.COLOR_BGR2RGB)
             img_right = cv2.imread(img_right)
+            img_right = cv2.resize(img_right, dim)
             img_right = cv2.cvtColor(img_right, cv2.COLOR_BGR2RGB)
 
         # Setting images in the canvas
@@ -530,3 +535,24 @@ class AppIFAS(object):
         self.imgtk_right = ImageTk.PhotoImage(img_right)
         self.canvas_left.create_image(0, 0, anchor=tk.NW, image=self.imgtk_left)
         self.canvas_right.create_image(0, 0, anchor=tk.NW, image=self.imgtk_right)
+
+    # Click on image to be show
+    def click_on_image(self, canvas=None):
+        self.logger.print(level='INFO', message='Image clicked started ')
+        if not self.verify_db():
+            return
+
+        if canvas == 'ref':
+            img_file = self.db.db_folder.joinpath(
+                self.db.list_ref[self.ref_img_idx], self.db.list_ref[self.ref_img_idx] + '.png'
+            )
+        elif canvas == 'tst':
+            img_file = self.db.db_folder.joinpath(
+                self.db.list_ref[self.ref_img_idx], 
+                self.db.dict_tst[self.db.list_ref[self.ref_img_idx]][self.tst_img_idx]
+            )
+
+        img = cv2.imread(str(img_file))
+        cv2.imshow(img_file.stem, img)
+
+        self.logger.print(level='INFO', message='Image clicked finished ')
