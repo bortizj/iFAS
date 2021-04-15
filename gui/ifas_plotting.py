@@ -261,3 +261,119 @@ class ScatterPlotWithHistograms(object):
         self.feat_idx_y = np.clip(self.feat_idx_y, 0, self.n_var - 1)
 
         self.scatter_plot()
+
+
+# Scatter plot for the given data matrix against a target and the regression values
+class ScatterPlotTargetWithHistograms(object):
+    """
+    Use 'left', 'right', 'up', 'down' keys to browse through the next and previous feature
+    """
+    def __init__(self, data, pdata, pdatax, target, axes_labels=None):
+        self.data = data
+        self.pdata = pdata
+        self.pdatax = pdatax
+        self.y_var = data[::, target]
+        self.n_var = data.shape[1]
+        if axes_labels is None:
+            self.axes_labels = range(self.n_var)
+        else:
+            self.axes_labels = axes_labels
+
+        self.feat_idx_x = 0
+        self.feat_idx_y = target
+
+        # Setting up plot places
+        self.fig = plt.figure('iFAS - Scatter plot with histograms widget', figsize=(9.25, 9.25))
+
+        # definitions for the axes
+        left, width = 0.1, 0.65
+        bottom, height = 0.1, 0.65
+        spacing = 0.005
+
+        rect_scatter = [left, bottom, width, height]
+        rect_histx = [left, bottom + height + spacing, width, 0.2]
+        rect_histy = [left + width + spacing, bottom, 0.2, height]
+
+        self.ax_scatter = self.fig.add_axes(rect_scatter)
+        self.ax_scatter.tick_params(direction='in', top=True, right=True)
+        self.ax_histx = self.fig.add_axes(rect_histx)
+        self.ax_histx.tick_params(direction='in', labelbottom=False)
+        self.ax_histy = self.fig.add_axes(rect_histy)
+        self.ax_histy.tick_params(direction='in', labelleft=False)
+
+        self.fig.canvas.mpl_connect('key_press_event', self.on_key)
+
+        self.scatter_plot()
+        self.ax_scatter.tick_params('both', labelsize=18)
+        self.ax_histx.tick_params('x', labelsize=18)
+        self.ax_histy.tick_params('y', labelsize=18)
+        self.ax_scatter.grid(True)
+        plt.show(block=False)
+
+    def scatter_plot(self):
+        x = self.data[:, self.feat_idx_x]
+        y = self.data[:, self.feat_idx_y]
+        xp = self.pdatax[:, self.feat_idx_x]
+        yp = self.pdata[:, self.feat_idx_x]
+
+        self.ax_scatter.cla()
+        self.ax_histx.cla()
+        self.ax_histy.cla()
+
+        # the scatter plot:
+        self.ax_scatter.plot(xp, yp, 'b-', ms=3, lw=3)
+        self.ax_scatter.plot(x, y, 'rx', ms=5, lw=3)
+        self.ax_scatter.set_xlabel(self.axes_labels[self.feat_idx_x], fontsize=18)
+        self.ax_scatter.set_ylabel(self.axes_labels[self.feat_idx_y], fontsize=18)
+
+        # Determine limits:
+        nbins = 50
+        x_min = np.min(x)
+        x_max = np.max(x)
+        y_min = np.min(y)
+        y_max = np.max(y)
+        self.ax_scatter.set_xlim((x_min, x_max))
+        self.ax_scatter.set_ylim((y_min, y_max))
+
+        # Determining the histograms
+        bins_x = np.linspace(x_min, x_max, nbins)
+        bins_y = np.linspace(y_min, y_max, nbins)
+        height_x = np.mean(bins_x[1:] - bins_x[:-1]) / 2.
+        height_y = np.mean(bins_y[1:] - bins_y[:-1]) / 2.
+
+        hist_x, __ = np.histogram(x, bins_x)
+        hist_x = hist_x / np.sum(hist_x)
+
+        self.ax_histx.bar(list((bins_x[1:] + bins_x[:-1]) / 2.), list(hist_x), fc=(0, 1, 0, 0.5), width=height_x)
+
+        hist_y, __ = np.histogram(y, bins_y)
+        hist_y = hist_y / np.sum(hist_y)
+
+        self.ax_histy.barh(list((bins_y[1:] + bins_y[:-1]) / 2.), list(hist_y), fc=(0, 1, 0, 0.5), height=height_y)
+
+        self.ax_histx.set_xlim(self.ax_scatter.get_xlim())
+        self.ax_histy.set_ylim(self.ax_scatter.get_ylim())
+
+        plt.draw_all()
+
+    def on_key(self, event):
+        inc_x = 0
+        inc_y = 0
+        if event.key not in set_of_keys:
+            return
+        if event.key == 'right':
+            inc_x = 1
+        elif event.key == 'left':
+            inc_x = -1
+        elif event.key == 'down':
+            inc_y = 0
+        elif event.key == 'up':
+            inc_y = 0
+
+        self.feat_idx_x += inc_x
+        self.feat_idx_y += inc_y
+
+        self.feat_idx_x = np.clip(self.feat_idx_x, 0, self.n_var - 1)
+        self.feat_idx_y = np.clip(self.feat_idx_y, 0, self.n_var - 1)
+
+        self.scatter_plot()

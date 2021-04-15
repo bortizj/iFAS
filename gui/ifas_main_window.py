@@ -33,7 +33,7 @@ import os
 
 from processing import add_distortions
 from processing.image_database import ImgDatabase
-import ifas_misc, ifas_plotting
+from gui import ifas_misc, ifas_plotting
 
 PATH_FILE = pathlib.Path(__file__).parent.absolute()
 PATH_MEASURES = PATH_FILE.parents[0].joinpath('fidelity_measures')
@@ -249,7 +249,30 @@ class AppIFAS(object):
     # Setting the controls
     def set_buttons_models(self):
         # Setting controls for modeling
-        pass
+        choices_model = ['linear', 'quadratic', 'cubic', 'exponential', 'logistic', 'complementary_error']
+        self.label_functions = tk.Label(master=self.frame_models, bg="black", fg="white", font=18, text="Model:")
+        self.label_functions.place(relx=0.1, rely=0.02, relheight=0.215, relwidth=0.4)
+        self.combobox_functions = ttk.Combobox(self.frame_models, values=choices_model, font=18)
+        self.combobox_functions.current(0)
+        self.combobox_functions.place(relx=0.55, rely=0.02, relheight=0.215, relwidth=0.4)
+
+        choices_feat = ['']
+        self.label_features = tk.Label(master=self.frame_models, bg="black", fg="white", font=18, text="Target:")
+        self.label_features.place(relx=0.1, rely=0.27, relheight=0.215, relwidth=0.4)
+        self.combobox_features = ttk.Combobox(self.frame_models, values=choices_feat, font=18)
+        self.combobox_features.current(0)
+        self.combobox_features.place(relx=0.55, rely=0.27, relheight=0.215, relwidth=0.4)
+
+        self.label_entry = tk.Label(master=self.frame_models, bg="black", fg="white", font=18, text="Parameters ini:")
+        self.label_entry.place(relx=0.1, rely=0.52, relheight=0.215, relwidth=0.4)
+        self.par_entry = tk.Entry(self.frame_models, font=18)
+        self.par_entry.place(relx=0.55, rely=0.52, relheight=0.215, relwidth=0.4)
+
+        self.button_start_model = tk.Button(
+            master=self.frame_models, bg="black", fg="white", activebackground='gray', font=18, text='Optimize', 
+            command=self.optimize
+            )
+        self.button_start_model.place(anchor=tk.N, relx=0.5, rely=0.77, relheight=0.215, relwidth=0.8)
 
     # Creates a new database and makes it ready to be processed
     def create_data(self):
@@ -374,7 +397,7 @@ class AppIFAS(object):
                 self.logger.print(level='WARNING', message='No csv file in database ')
                 tk.messagebox.showerror("Warning", "No csv file in database please reprocess!", master=self.win)
             else:
-                self.logger.print(level='WARNING', message=self.db.data.head(10))
+                self.logger.print(level='WARNING', message=self.db.data.head(5))
 
         self.ref_img_idx = 0
         self.tst_img_idx = 0
@@ -385,6 +408,10 @@ class AppIFAS(object):
             self.db.list_ref[self.ref_img_idx], self.db.dict_tst[self.db.list_ref[self.ref_img_idx]][self.tst_img_idx]
             )
         self.disp_imgs(img_left=str(crt_ref), img_right=str(crt_tst))
+
+        # Updating the list of available features in the regression frame
+        self.combobox_features['values'] = self.db.get_list_measures_dataframe()
+        self.combobox_features.current(0)
 
         self.logger.print(level='INFO', message='Data loaded finished!')
         tk.messagebox.showinfo("Information", "DATA LOADED", master=self.win)
@@ -398,7 +425,7 @@ class AppIFAS(object):
         self.db.compute_correlations()
         self.show_corr_summary()
         self.logger.print(level='INFO', message='Correlations computed finished ')
-        tk.messagebox.showinfo("Information", "CORRELATIONS COMPUTED:\n See the heat map plot window!", master=self.win)
+        # tk.messagebox.showinfo("Information", "CORRELATIONS COMPUTED:\n See the heat map plot window!", master=self.win)
 
     # Shoes the correlation summary on the exiting measures
     def show_corr_summary(self):
@@ -426,7 +453,7 @@ class AppIFAS(object):
             return
 
         self.scatter = ifas_plotting.ScatterPlotWithHistograms(self.db.get_data(), self.db.get_list_measures_dataframe())
-        tk.messagebox.showinfo("Information", "See the scatter plot window!", master=self.win)
+        # tk.messagebox.showinfo("Information", "See the scatter plot window!", master=self.win)
 
     # Bar plot of the available correlations between mesures
     def bar_plot(self):
@@ -439,14 +466,15 @@ class AppIFAS(object):
             tk.messagebox.showerror("Error", "No correlation available!", master=self.win)
             return
 
-        correlations = self.db.get_correlations_with(idx=-1)
         list_meas = self.db.get_list_measures_dataframe()
-        del list_meas[-1]
+        meas_idx = list_meas.index(self.combobox_features.get())
+        correlations = self.db.get_correlations_with(idx=meas_idx)
+        del list_meas[meas_idx]
         ifas_plotting.bar_plot(
-            correlations, axes_labels=list_meas, target_var_idx=self.db.get_list_measures_dataframe()[-1]
+            correlations, axes_labels=list_meas, target_var_idx=self.db.get_list_measures_dataframe()[meas_idx]
             )
 
-        tk.messagebox.showinfo("Information", "See the Bar plot window!", master=self.win)
+        # tk.messagebox.showinfo("Information", "See the Bar plot window!", master=self.win)
 
     # Box plot of the available correlations between mesures per source
     def box_plot(self):
@@ -454,14 +482,15 @@ class AppIFAS(object):
         if not self.verify_db():
             return
 
-        correlations = self.db.compute_correlations_per_source(idx=-1)
         list_meas = self.db.get_list_measures_dataframe()
-        del list_meas[-1]
+        meas_idx = list_meas.index(self.combobox_features.get())
+        correlations = self.db.compute_correlations_per_source(idx=meas_idx)
+        del list_meas[meas_idx]
         ifas_plotting.box_plot(
-            correlations, axes_labels=list_meas, target_var_idx=self.db.get_list_measures_dataframe()[-1]
+            correlations, axes_labels=list_meas, target_var_idx=self.db.get_list_measures_dataframe()[meas_idx]
             )
 
-        tk.messagebox.showinfo("Information", "See the Box plot window!", master=self.win)
+        # tk.messagebox.showinfo("Information", "See the Box plot window!", master=self.win)
 
     # Regression plot of available measures with the dmos
     def reg_plot(self):
@@ -469,7 +498,18 @@ class AppIFAS(object):
         if not self.verify_db():
             return
 
-        tk.messagebox.showinfo("Information", "See the Regression plot window!", master=self.win)
+        if not hasattr(self.db, 'model_par'):
+            self.logger.print(level='ERROR', message='No models optimized in database ')
+            tk.messagebox.showerror("Error", "No models optimized in database!", master=self.win)
+            return
+
+        xp, yp = self.db.estimate_using_model()
+        list_meas = self.db.get_list_measures_dataframe()
+        self.scatter = ifas_plotting.ScatterPlotTargetWithHistograms(
+            self.db.get_data(), yp, xp, list_meas.index(self.combobox_features.get()), 
+            axes_labels=self.db.get_list_measures_dataframe()
+            )
+        # tk.messagebox.showinfo("Information", "See the Regression plot window!", master=self.win)
 
     # Image changed 
     def image_changed(self, button=None):
@@ -556,3 +596,27 @@ class AppIFAS(object):
         cv2.imshow(img_file.stem, img)
 
         self.logger.print(level='INFO', message='Image clicked finished ')
+
+    def optimize(self):
+        self.logger.print(level='INFO', message='Optimization started ')
+        if not self.verify_db():
+            return
+
+        model = self.combobox_functions.get()
+        target = self.db.get_list_measures_dataframe().index(self.combobox_features.get())
+        input_txt = self.par_entry.get().split(',')
+        if len(input_txt) < 2:
+            tk.messagebox.showerror("Error", "No parameters entered!", master=self.win)
+            self.logger.print(level='ERROR', message='No parameters entered!')
+            return
+
+        try:
+            ini_par = list(map(float, input_txt))
+            self.db.optimize_model(model, target, ini_par)
+        except Exception as error:
+            tk.messagebox.showerror("Error", "Something went wrong! \n" + repr(error), master=self.win)
+            self.logger.print(level='ERROR', message="Something went wrong! \n" + repr(error))
+            return        
+
+        tk.messagebox.showinfo("Information", "Optimization finished!", master=self.win)
+        self.logger.print(level='INFO', message='Optimization finished ')

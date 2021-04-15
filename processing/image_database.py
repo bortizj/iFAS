@@ -23,11 +23,11 @@ import pathlib
 import shutil
 import os
 import numpy as np
-from numpy.core.numeric import correlate
 import pandas as pd
 import cv2
 
 from processing.ifas_stats import compute_1dcorrelations
+from processing.regression_tools import RegressionModel
 from gui import ifas_plotting
 
 class ImgDatabase(object):
@@ -102,17 +102,19 @@ class ImgDatabase(object):
 
     # Computing the correlations for the set of data per source
     def compute_correlations_per_source(self, idx):
+        # First 2 columns are the file names
         n_var = self.data.values[::, 2:].shape[1]
         n_ref = len(self.list_ref)
         correlations = np.zeros((n_ref, n_var, 4))
         for ii in range(n_ref):
             for jj in range(n_var):
                 idx_s = np.where(self.data.values[::, 0] == self.list_ref[ii])
-                p, s, t, pd = compute_1dcorrelations(self.data.values[idx_s, jj + 2].T, self.data.values[idx_s, idx].T)
+                p, s, t, pd = compute_1dcorrelations(
+                    self.data.values[idx_s, jj + 2].T, self.data.values[idx_s, idx + 2].T
+                    )
                 correlations[ii, jj, 0], correlations[ii, jj, 1], correlations[ii, jj, 2], correlations[ii, jj, 3] = (
                     p, s, t, pd
                     )
-        # First 2 columns are the file names
         correlations = np.delete(correlations, idx, 1)
         return correlations
 
@@ -169,6 +171,17 @@ class ImgDatabase(object):
 
     def get_data(self):
         return self.data.values[::, 2:]
+
+    def optimize_model(self, model, target, ini_par):
+        self.reg_model = RegressionModel(model_type=model, ini_par=ini_par)
+        data = self.get_data().astype('float64')
+        self.model_par = self.reg_model.optimize_over_data(data, data[::, target])
+        self.target = target
+
+    def estimate_using_model(self):
+        data = self.get_data().astype('float64')
+        y_est = self.reg_model.evaluate_over_data(self.model_par, data)
+        return y_est
 
 
 class ProcessHandler(object):
