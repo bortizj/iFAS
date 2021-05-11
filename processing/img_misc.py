@@ -31,7 +31,7 @@ def estimate_noise(cd_wavelet):
     window = np.ones((b + 1, b + 1), dtype=np.float32)
     window[:, 0] = 0.0
     window[0, :] = 0.0
-    window = (window / (b * b)).astype('float32')
+    window = (window / (b * b)).astype("float32")
     avg_blk = cv2.filter2D(np.sqrt(np.abs(cd_wavelet)), ddepth=-1, kernel=window, borderType=cv2.BORDER_REFLECT_101)
     block = avg_blk[int(b / 2):int(-(b / 2 - 1)):b, int(b / 2):int(-(b / 2 - 1)):b]
     block = np.sort(block, axis=None)

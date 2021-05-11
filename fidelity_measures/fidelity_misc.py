@@ -43,8 +43,8 @@ def ssim(ref_img, tst_img, *argv):
     elif len(argv) < 3:
         k, wsize = argv[0], argv[1]
 
-    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype('float32')
-    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype('float32')
+    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype("float32")
+    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype("float32")
 
     c1 = (k[0] * 255) ** 2
     c2 = (k[1] * 255) ** 2
@@ -52,13 +52,13 @@ def ssim(ref_img, tst_img, *argv):
     ref_mu = cv2.GaussianBlur(ref_img_gray, (wsize, wsize), 1.5)
     tst_mu = cv2.GaussianBlur(tst_img_gray, (wsize, wsize), 1.5)
 
-    ref_mu_sq = (ref_mu * ref_mu).astype('float32')
-    tst_mu_sq = (tst_mu * tst_mu).astype('float32')
-    ref_tst_mu = (ref_mu * tst_mu).astype('float32')
+    ref_mu_sq = (ref_mu * ref_mu).astype("float32")
+    tst_mu_sq = (tst_mu * tst_mu).astype("float32")
+    ref_tst_mu = (ref_mu * tst_mu).astype("float32")
 
-    ref_sigma_sq = cv2.GaussianBlur((ref_img_gray * ref_img_gray).astype('float32'), (wsize, wsize), 1.5) - ref_mu_sq
-    tst_sigma_sq = cv2.GaussianBlur((tst_img_gray * tst_img_gray).astype('float32'), (wsize, wsize), 1.5) - tst_mu_sq
-    ref_tst_sigma = cv2.GaussianBlur((ref_img_gray * tst_img_gray).astype('float32'), (wsize, wsize), 1.5) - ref_tst_mu
+    ref_sigma_sq = cv2.GaussianBlur((ref_img_gray * ref_img_gray).astype("float32"), (wsize, wsize), 1.5) - ref_mu_sq
+    tst_sigma_sq = cv2.GaussianBlur((tst_img_gray * tst_img_gray).astype("float32"), (wsize, wsize), 1.5) - tst_mu_sq
+    ref_tst_sigma = cv2.GaussianBlur((ref_img_gray * tst_img_gray).astype("float32"), (wsize, wsize), 1.5) - ref_tst_mu
 
     if c1 > 0 and c2 > 0:
         ssim_map = (
@@ -83,10 +83,10 @@ def ssim(ref_img, tst_img, *argv):
 # Wavelet domain image denoising for non-stationary noise and signal-dependent noise
 # IEEE PROCEEDINGS of the International conference on image processing
 def noise_difference(ref_img, tst_img):
-    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype('float32')
-    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype('float32')
-    _, (_, _, ref_cd) = pywt.dwt2(ref_img_gray, 'db1', 'sym')
-    _, (_, _, tst_cd) = pywt.dwt2(tst_img_gray, 'db1', 'sym')
+    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype("float32")
+    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype("float32")
+    _, (_, _, ref_cd) = pywt.dwt2(ref_img_gray, "db1", "sym")
+    _, (_, _, tst_cd) = pywt.dwt2(tst_img_gray, "db1", "sym")
     noise_ref = misc.estimate_noise(ref_cd)
     noise_pro = misc.estimate_noise(tst_cd)
 
@@ -96,8 +96,8 @@ def noise_difference(ref_img, tst_img):
 # Based on guide
 # https://docs.opencv.org/master/d4/d13/tutorial_py_filtering.html
 def blur_difference(ref_img, tst_img):
-    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype('float32')
-    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype('float32')
+    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype("float32")
+    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype("float32")
     ref_var = misc.variance_of_laplacian(ref_img_gray)
     tst_var = misc.variance_of_laplacian(tst_img_gray)
     
@@ -108,8 +108,8 @@ def blur_difference(ref_img, tst_img):
 # EPSNR for objective image quality measurements
 # Proceedings of the First International Conference on Computer Imaging Theory and Applications
 def epsnr(ref_img, tst_img):
-    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype('float32')
-    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype('float32')
+    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype("float32")
+    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype("float32")
 
     ref_px = cv2.Sobel(ref_img_gray, -1, 1, 0, ksize=3)
     ref_py = cv2.Sobel(ref_img_gray, -1, 0, 1, ksize=3)

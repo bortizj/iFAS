@@ -19,8 +19,7 @@ import numpy as np
 from scipy import optimize
 from scipy import special
 
-from processing.ifas_stats import compute_1dcorrelations
-from gui import ifas_plotting
+from gui.ifas_misc import convert_ifnan
 
 # Defining the available models (error functions) -> the most relevant for image fidelity assessment
 
@@ -52,13 +51,15 @@ class RegressionModel(object):
     """
     Class object to initialize the regression model
     """
-    def __init__(self, model_type='linear', ini_par=None):
+    def __init__(self, model_type="linear", ini_par=None):
         self.model_type = model_type
         self.ini_par = ini_par
 
     def optimize_model(self, x, y):
+        x = convert_ifnan(x)
+        y = convert_ifnan(y)
         res_soft_l1 = optimize.least_squares(
-            globals()[self.model_type], self.ini_par, loss='soft_l1', f_scale=0.1, args=(x, y)
+            globals()[self.model_type], self.ini_par, loss="soft_l1", f_scale=0.1, args=(x, y)
             )
         # returns the solution x -> parameters of the function to optimize
         return res_soft_l1.x
@@ -77,7 +78,8 @@ class RegressionModel(object):
         y_p = []
         x_p = []
         for ii in range(n_var):
-            x = np.linspace(np.min(in_mat[::, ii]), np.max(in_mat[::, ii]), in_mat[::, ii].size)
+            x_ii = convert_ifnan(in_mat[::, ii])
+            x = np.linspace(np.min(x_ii), np.max(x_ii), in_mat[::, ii].size)
             y_temp = self.evaluate_model(in_par[ii], x)
             y_p.append(y_temp)
             x_p.append(x)
@@ -85,17 +87,17 @@ class RegressionModel(object):
         return np.array(x_p).T, np.array(y_p).T
 
     def evaluate_model(self, a, x):
-        if self.model_type == 'linear':
+        if self.model_type == "linear":
             y = a[0] + a[1] * x
-        elif self.model_type == 'quadratic':
+        elif self.model_type == "quadratic":
             y = a[0] + a[1] * x + a[2] * np.power(x,2)
-        elif self.model_type == 'cubic':
+        elif self.model_type == "cubic":
             y = a[0] + a[1] * x + a[2] * np.power(x, 2) + a[3] * np.power(x, 3)
-        elif self.model_type == 'exponential':
+        elif self.model_type == "exponential":
             y = a[0] + np.exp(a[1] * x + a[2])
-        elif self.model_type == 'logistic':
+        elif self.model_type == "logistic":
             y = a[0] / (1 + np.exp(-(a[1] * x + a[2])))
-        elif self.model_type == 'complementary_error':
+        elif self.model_type == "complementary_error":
             y = 1 - 0.5 * (1 + special.erf((x - a[0]) / (np.sqrt(2) * a[1])))
         else:
             y = None

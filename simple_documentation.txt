@@ -75,6 +75,26 @@ After loading a database, it is possible to show the correlation against the
 target variable for each measure in form of the box plot. Each box represents 
 the correlation distribution for each source variable. 
 
+# Regression plot button
+It is possible to show the results of the regression model after its 
+optimization. A new window appear with one of the measures in the x axis and 
+the target measure in the y axis (the axis are labeled correspondly to the 
+measure). The plot can be controlled using the left, right keys in order to 
+change between the different measures.
+
 # Navigation buttons on top of the images
 Left or Right to move across the reference image (left frame) and the test 
 images (right frame).
+
+# Model combobox 
+To select between the available regression models
+
+# Target
+The dependend or target variable for the regression model
+
+# Parameters ini
+The set of parameters to be used as initial guess in the regression model
+
+# Optimize
+This button starts the optimization of the selected model using the selected 
+target variable. Also activates the regression plot.

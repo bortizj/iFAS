@@ -17,6 +17,7 @@ author: Benhur Ortiz Jaramillo
 
 import numpy as np
 from scipy import stats
+from gui.ifas_misc import convert_ifnan
 
 def dis_correlation(x, y):
     n = x.size
@@ -27,16 +28,25 @@ def dis_correlation(x, y):
     dcov2_xy = np.sum(A * B) / float(n * n)
     dcov2_xx = np.sum(A * A) / float(n * n)
     dcov2_yy = np.sum(B * B) / float(n * n)
-    return np.sqrt(dcov2_xy) / np.sqrt((np.sqrt(dcov2_xx) * np.sqrt(dcov2_yy)))
+    den = np.sqrt((np.sqrt(dcov2_xx) * np.sqrt(dcov2_yy)))
+    if den != 0:
+        return np.sqrt(dcov2_xy) / np.sqrt((np.sqrt(dcov2_xx) * np.sqrt(dcov2_yy)))
+    else:
+        return 0
 
 
 def compute_1dcorrelations(data, data_y=None):
     if data_y is not None:
         # if second data is given then only single correlation is computed
-        p, __ = stats.pearsonr(data.ravel(), data_y.ravel())
-        s, __ = stats.spearmanr(data.ravel(), data_y.ravel())
-        t, __ = stats.kendalltau(data.ravel(), data_y.ravel())
-        pd = dis_correlation(data, data_y)
+        x = convert_ifnan(data.ravel())
+        y = convert_ifnan(data_y.ravel())
+        if np.unique(x).size == 1 or np.unique(y).size == 1:
+            p, s, t, pd = 0, 0, 0, 0
+        else:
+            p, __ = stats.pearsonr(x, y)
+            s, __ = stats.spearmanr(x, y)
+            t, __ = stats.kendalltau(x, y)
+            pd = dis_correlation(x, y)
 
         return p, s, t, pd
 
@@ -44,13 +54,15 @@ def compute_1dcorrelations(data, data_y=None):
     s = np.zeros((data.shape[1], data.shape[1]))
     t = np.zeros((data.shape[1], data.shape[1]))
     pd = np.zeros((data.shape[1], data.shape[1]))
-    data = data.astype('float')
+    data = data.astype("float")
     for ii in range(data.shape[1]):
         for jj in range(data.shape[1]):
-            if not (np.any(np.isnan(data[::, ii])) or np.any(np.isnan(data[::, jj]))):
-                p[ii, jj], __ = stats.pearsonr(data[::, ii], data[::, jj])
-                s[ii, jj], __ = stats.spearmanr(data[::, ii], data[::, jj])
-                t[ii, jj], __ = stats.kendalltau(data[::, ii], data[::, jj])
-                pd[ii, jj] = dis_correlation(data[::, ii], data[::, jj])
+            x = convert_ifnan(data[::, ii])
+            y = convert_ifnan(data[::, jj])
+            if np.unique(x).size > 1 and np.unique(y).size > 1:
+                p[ii, jj], __ = stats.pearsonr(x, y)
+                s[ii, jj], __ = stats.spearmanr(x, y)
+                t[ii, jj], __ = stats.kendalltau(x, y)
+                pd[ii, jj] = dis_correlation(x, y)
 
     return p, s, t, pd

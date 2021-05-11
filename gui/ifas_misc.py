@@ -25,24 +25,32 @@ import pathlib
 import tempfile
 import cv2
 
+# Replaces any nan in the vector x with val
+def convert_ifnan(x, val=0):
+    y = x.astype("float64")
+    y[np.isnan(y)] = val
+
+    return y
+
+
 # Creates iFas logo image
 def logo_image(size_in):
     # Create a black image
     img = np.zeros((int(size_in[1] - 50), int(size_in[0] / 2 - 25), 3), np.uint8)
 
-    # Write some Text
+    # Write oon image -> iFAS: Image fidelity assessment software
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 1
     font_color = (0,255,255)
     font_thickness = 2
 
     (label_width, label_height), __ = cv2.getTextSize(
-        'iFAS: Image fidelity assessment software', font, font_scale, font_thickness
+        "iFAS: Image fidelity assessment software", font, font_scale, font_thickness
         )
     pos = (int(img.shape[1] / 2 - label_width / 2), int(img.shape[0] / 2 - label_height / 2))
 
     cv2.putText(
-        img, 'iFAS: Image fidelity assessment software', pos, font, font_scale, font_color, 
+        img, "iFAS: Image fidelity assessment software", pos, font, font_scale, font_color, 
         font_thickness
         )
     return img
@@ -54,32 +62,32 @@ class Logging(object):
     """
     def __init__(self, file_name=None):
         if file_name is None:
-            file_name = tempfile.gettempdir() + r'\ifas_log.log'
+            file_name = tempfile.gettempdir() + r"\ifas_log.log"
         self.file_path = pathlib.Path(file_name)
         if self.file_path.is_file():
-            with open(str(self.file_path), 'a') as f:    
-                print(self.get_time(), 'Logging started', sep=', ', file=f)
+            with open(str(self.file_path), "a") as f:    
+                print(self.get_time(), "Logging started", sep=", ", file=f)
         else:
-            with open(str(self.file_path), 'w') as f:    
-                print(self.get_time(), 'Logging started', sep=', ', file=f)
+            with open(str(self.file_path), "w") as f:    
+                print(self.get_time(), "Logging started", sep=", ", file=f)
 
     def get_time(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
 
     def print(self, level, message):
-        with open(str(self.file_path), 'a') as f:    
-                print(self.get_time(), level, message, sep=', ', file=f)
+        with open(str(self.file_path), "a") as f:    
+                print(self.get_time(), level, message, sep=", ", file=f)
 
 
 class ProgressBar(object):
     """
     Class object to initialize the main window of a progressbar
     """
-    def __init__(self, title='Default'):
+    def __init__(self, title="Default"):
         self.main_window = tk.Tk()
         self.main_window.title(title)
         self.progress_bar = ttk.Progressbar(
-            master=self.main_window, orient=tk.HORIZONTAL, mode='determinate', maximum=100, value=0
+            master=self.main_window, orient=tk.HORIZONTAL, mode="determinate", maximum=100, value=0
             )
         self.progress_bar.pack(fill=tk.BOTH, expand=1)
 
@@ -87,7 +95,7 @@ class ProgressBar(object):
 
     def update_value(self, value=1):
         # Keep updating the master object to redraw the progress bar
-        self.progress_bar['value'] += value
+        self.progress_bar["value"] += value
         self.main_window.update()
 
 
@@ -95,7 +103,7 @@ class Radiobutton(object):
     """
     Class object to initialize the main window of a popup with radiobuttons
     """
-    def __init__(self, list_dist=[''], title='Default'):
+    def __init__(self, list_dist=[""], title="Default"):
         self.main_window = tk.Tk()
         self.main_window.title(title)
         self.var = tk.StringVar()

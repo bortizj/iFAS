@@ -31,13 +31,13 @@ def brightness(in_img, lvl=0.25, out_folder=None):
         in_img_fol = in_img
         in_img = cv2.imread(in_img_fol)
     # converting image to YUV in order to modify only the Y component
-    img_hsv = cv2.cvtColor(in_img.astype('float32') / 255., cv2.COLOR_BGR2HSV)
+    img_hsv = cv2.cvtColor(in_img.astype("float32") / 255., cv2.COLOR_BGR2HSV)
     # Adding the constant to the Y component
     img_hsv[::, ::, 2] += lvl
     # Cliping the results and converting back to bgr
     img_hsv[::, ::, 2] = np.clip(img_hsv[::, ::, 2], 0, 1)
-    img_out = cv2.cvtColor(img_hsv.astype('float32'), cv2.COLOR_HSV2BGR)
-    img_out = (255 * img_out).astype('uint8')
+    img_out = cv2.cvtColor(img_hsv.astype("float32"), cv2.COLOR_HSV2BGR)
+    img_out = (255 * img_out).astype("uint8")
 
     if out_folder is not None:
         cv2.imwrite(out_folder, img_out)
