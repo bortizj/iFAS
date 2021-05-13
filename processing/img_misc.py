@@ -45,6 +45,7 @@ def variance_of_laplacian(img):
 	return cv2.Laplacian(img, -1).var()
 
 
+# Threshold based on the median and deviation of differences
 def median_threshold(img, std_fact=4.4478):
     med = np.median(img)
     stdev = np.median(np.abs(img - med))

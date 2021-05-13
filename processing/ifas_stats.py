@@ -19,6 +19,7 @@ import numpy as np
 from scipy import stats
 from gui.ifas_misc import convert_ifnan
 
+# Distance correlation between 2 given vectors
 def dis_correlation(x, y):
     n = x.size
     a = np.abs(x[:, None] - x)
@@ -35,11 +36,15 @@ def dis_correlation(x, y):
         return 0
 
 
+# Correlation between 2 given vectors or between columns of a matrix
 def compute_1dcorrelations(data, data_y=None):
+    # If second input is given then the correlation is between those 2
     if data_y is not None:
         # if second data is given then only single correlation is computed
+        # any nan is changed for 0
         x = convert_ifnan(data.ravel())
         y = convert_ifnan(data_y.ravel())
+        # correlation with constants return zero
         if np.unique(x).size == 1 or np.unique(y).size == 1:
             p, s, t, pd = 0, 0, 0, 0
         else:
@@ -50,6 +55,7 @@ def compute_1dcorrelations(data, data_y=None):
 
         return p, s, t, pd
 
+    # computing correlation matrices
     p = np.zeros((data.shape[1], data.shape[1]))
     s = np.zeros((data.shape[1], data.shape[1]))
     t = np.zeros((data.shape[1], data.shape[1]))

@@ -25,8 +25,9 @@ from gui.ifas_misc import convert_ifnan
 set_of_keys = ("right", "left", "up", "down")
 
 
-# Heat map for the given correlatin matrices 
+# Heat map for the given correlation matrices 
 def heat_map(pearson, spearman, ccd, tau):
+    # Given 4 matrices a heat map is ploted for each one
     fig, ((map_pearson, map_spearman), (map_ccd, map_tau)) = plt.subplots(2, 2)
     fig.canvas.set_window_title("Correlation heat map plot")
     map_pearson.tick_params(labelsize=16)
@@ -70,7 +71,7 @@ def heat_map(pearson, spearman, ccd, tau):
     plt.show(block=False)
 
 
-# Bar plot of the correlations for the given data matrix, we assume last column is the target variable
+# Bar plot of the correlations for the given data matrix
 def bar_plot(correlations, axes_labels=None, target_var_idx=""):
     n_var = correlations.shape[0]
     if axes_labels is None:
@@ -104,7 +105,7 @@ def bar_plot(correlations, axes_labels=None, target_var_idx=""):
     plt.subplots_adjust(top=0.95, bottom=0.1, left=0.05, right=0.85, hspace=0.2, wspace=0.05)
     plt.show(block=False)
     
-
+# Box plot of the correlations for the given data matrix per source
 def box_plot(correlations, axes_labels=None, target_var_idx=""):
     p = correlations[::, ::, 0]
     s = correlations[::, ::, 1]

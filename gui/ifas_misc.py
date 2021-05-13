@@ -59,6 +59,7 @@ def logo_image(size_in):
 class Logging(object):
     """
     Class object to initialize the logging functionality
+    file_name is full path name to the log file otherwise a temp file s created
     """
     def __init__(self, file_name=None):
         if file_name is None:

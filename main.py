@@ -18,7 +18,7 @@ author: Benhur Ortiz Jaramillo
 import pathlib
 import sys
 
-# Appending the relevant paths to functionalities 
+# Appending the relevant paths 
 
 PATH_FILE = pathlib.Path(__file__).parent.absolute()
 PATH_MEASURES = PATH_FILE.joinpath("fidelity_measures")

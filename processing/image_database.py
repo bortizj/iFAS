@@ -33,17 +33,21 @@ from gui import ifas_plotting
 class ImgDatabase(object):
     """
     Class object to initialize the database of images
+    the input is a the string with the folder path of the set of images
     """
     def __init__(self, data_folder):
         self.db_folder = pathlib.Path(data_folder)
         self.get_img_paths()
 
+    # Set of fidelity measures which will be computed on the set of images
     def set_test_measures(self, measures):
         self.measures = measures
 
+    # Reference to the logging instance where 
     def set_logger(self, logger):
         self.logger = logger
 
+    # Resolves the image paths and put them in a dictionary key -> ref image values -> test images
     def get_img_paths(self):
         flag = False
         # Removing first row -> It is the root folder
@@ -64,19 +68,20 @@ class ImgDatabase(object):
             if self.list_ref[ii] + ".png" in self.dict_tst[self.list_ref[ii]]:
                 self.dict_tst[self.list_ref[ii]].remove(self.list_ref[ii] + ".png")
             else:
+                # If reference image not in list good indication folder is incorrect
                 flag = True
         if flag:
             self.dict_tst = None
             self.list_ref = None
 
-    # Place holder for loading the pandas data frame
+    # Loading the pandas data frame if available 
     def get_csv(self):
         if self.db_folder.joinpath(self.db_folder.name + "_ifas_ouput.csv").is_file():
             self.data = pd.read_csv(str(self.db_folder.joinpath(self.db_folder.name + "_ifas_ouput.csv")))
         else:
             self.data = None
 
-    # Place holder for executing the process using the database
+    # Executing the process using the database
     def compute_measures(self):
         psh = ProcessHandler(self, self.measures)
         try:
@@ -96,7 +101,7 @@ class ImgDatabase(object):
         self.save_correlations()
         ifas_plotting.heat_map(p, s, pd, t)
 
-    # Computing the correlations for the set of data against the target coulumn
+    # Computing the correlations for the set of data against the target column
     def get_correlations_with(self, idx):
         correlations = np.vstack((
             self.pearson[::, idx], self.spearman[::, idx], self.tau[::, idx] , self.dist_corr[::, idx]
@@ -159,6 +164,7 @@ class ImgDatabase(object):
     # Getting the highest correlations from the correlation matrix
     def get_highest_corr(self):
         dist_corr = np.triu(self.dist_corr)
+        # correlations with itself are not considered for the ranking
         for ii in range(dist_corr.shape[0]):
             dist_corr[ii, ii] = 0
 
@@ -170,18 +176,24 @@ class ImgDatabase(object):
 
         return vals, idx
 
+    # Getting the list of measures in the pandas data frame
     def get_list_measures_dataframe(self):
+        # First 2 columns are the file names
         return list(self.data.columns)[2:]
 
+    # Getting the matrix of values from the data frame
     def get_data(self):
+        # First 2 columns are the file names
         return self.data.values[::, 2:]
 
+    # This function optimize the model for the database
     def optimize_model(self, model, target, ini_par):
         self.reg_model = RegressionModel(model_type=model, ini_par=ini_par)
         data = self.get_data().astype("float64")
         self.model_par = self.reg_model.optimize_over_data(data, data[::, target])
         self.target = target
 
+    # This function estimate values using the model for the database
     def estimate_using_model(self):
         data = self.get_data().astype("float64")
         y_est = self.reg_model.evaluate_over_data(self.model_par, data)
@@ -191,6 +203,7 @@ class ImgDatabase(object):
 class ProcessHandler(object):
     """
     Class object to initialize the processor
+    This object is used to spawn process on the database and the selected measures
     """
     def __init__(self, db, measures):
         self.main_window = tk.Tk()
@@ -221,6 +234,7 @@ class ProcessHandler(object):
         self.label_tst.configure(text="Test " + str(int(value2)) + " %")
         self.main_window.update()
 
+    # Function in charge of processing the data and updating the progress bars
     def process_data(self):
         with open(tempfile.gettempdir() + r"\temp_ifas_csv", "w") as f:
             # one liner to get the names of the functions
@@ -237,13 +251,23 @@ class ProcessHandler(object):
                     tst_img = cv2.imread(str(self.db.db_folder.joinpath(ii, jj)))
                     vals = []
                     for kk in range(len(self.measures)):
-                        val = self.measures[kk][1](ref_img, tst_img)
+                        # If any image is not read then return a nan instead
+                        if ref_img is None or tst_img is None:
+                            val = np.nan
+                            self.db.logger.print(level="ERROR", message="ref or tst image is None ")
+                        else:
+                            try:
+                                val = self.measures[kk][1](ref_img, tst_img)
+                            except Exception as error:
+                                self.db.logger.print(level="ERROR", message="Processing database " + repr(error))
+                                val = np.nan
+
                         vals.append(val)
 
                     print(ii, jj, *vals, sep=",", file=f)
 
                     msg = ("Computing " + ii + ", " + jj + ", " + ", ".join([str(val) for val in vals]))
-                    self.db.logger.print(level="INFO", message=msg)
+                    self.db.logger.print(level="DEBUG", message=msg)
                     val1 = 100. * (cnt1 + 1) / total_ref
                     val2 = 100. * (cnt2 + 1) / total_tst
                     self.update_progress_bar_value(value1=val1, value2=val2)
@@ -256,4 +280,5 @@ class ProcessHandler(object):
         self.label.configure(text="You can close this window!")
         self.main_window.update()
         self.db.logger.print(level="INFO", message="Processing finished!")
+        # Comment line below if you want the window close automatically
         self.main_window.mainloop()
