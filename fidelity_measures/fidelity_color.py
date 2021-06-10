@@ -12,11 +12,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-author: Benhur Ortiz Jaramillo
+author: Benhur Ortiz-Jaramillo
 """
 
 
 import numpy as np
+import cv2
 
 
 def color_deltaE(img_ref, img_tst):

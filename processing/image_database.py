@@ -12,7 +12,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-author: Benhur Ortiz Jaramillo
+author: Benhur Ortiz-Jaramillo
 """
 
 import tkinter as tk
@@ -77,7 +77,10 @@ class ImgDatabase(object):
     # Loading the pandas data frame if available 
     def get_csv(self):
         if self.db_folder.joinpath(self.db_folder.name + "_ifas_ouput.csv").is_file():
-            self.data = pd.read_csv(str(self.db_folder.joinpath(self.db_folder.name + "_ifas_ouput.csv")))
+            try:
+                self.data = pd.read_csv(str(self.db_folder.joinpath(self.db_folder.name + "_ifas_ouput.csv")))
+            except:
+                self.data = None
         else:
             self.data = None
 
@@ -88,7 +91,10 @@ class ImgDatabase(object):
             psh.process_data()
         except Exception as error:
                 self.logger.print(level="ERROR", message="Processing database " + repr(error))
-                tk.messagebox.showerror("Error", "Something went wrong processing! \n" + repr(error), master=self.win)
+                try:
+                    tk.messagebox.showerror("Error", "Something went wrong processing! \n" + repr(error), master=self.win)
+                except:
+                    return
 
     # Computing the correlations for the set of data
     def compute_correlations(self):
@@ -239,6 +245,7 @@ class ProcessHandler(object):
         with open(tempfile.gettempdir() + r"\temp_ifas_csv", "w") as f:
             # one liner to get the names of the functions
             func_names = [ii_meas[0] for ii_meas in self.measures]
+            # Adding the column names to the csv file
             print("ref", "tst", *func_names, sep=",", file=f)
         total_ref = len(self.db.list_ref)
         cnt1 = 0
@@ -250,6 +257,9 @@ class ProcessHandler(object):
                 for jj in self.db.dict_tst[ii]:
                     tst_img = cv2.imread(str(self.db.db_folder.joinpath(ii, jj)))
                     vals = []
+                    val1 = 100. * (cnt1) / total_ref
+                    val2 = 100. * (cnt2) / total_tst
+                    self.update_progress_bar_value(value1=val1, value2=val2)
                     for kk in range(len(self.measures)):
                         # If any image is not read then return a nan instead
                         if ref_img is None or tst_img is None:
@@ -264,15 +274,17 @@ class ProcessHandler(object):
 
                         vals.append(val)
 
+                    # Adding the computed data to the csv file
                     print(ii, jj, *vals, sep=",", file=f)
 
                     msg = ("Computing " + ii + ", " + jj + ", " + ", ".join([str(val) for val in vals]))
                     self.db.logger.print(level="DEBUG", message=msg)
-                    val1 = 100. * (cnt1 + 1) / total_ref
-                    val2 = 100. * (cnt2 + 1) / total_tst
-                    self.update_progress_bar_value(value1=val1, value2=val2)
                     cnt2 += 1
+
                 cnt1 += 1
+                val1 = 100. * (cnt1) / total_ref
+                val2 = 100. * (cnt2) / total_tst
+                self.update_progress_bar_value(value1=val1, value2=val2)
 
         src_dir = tempfile.gettempdir() + r"\temp_ifas_csv"
         dst_dir = str(self.db.db_folder.joinpath(self.db.db_folder.name + "_ifas_ouput.csv"))
