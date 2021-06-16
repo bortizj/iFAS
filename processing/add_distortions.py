@@ -31,7 +31,7 @@ def brightness(in_img, lvl=0.25, out_folder=None):
     if isinstance(in_img, str):
         in_img_fol = in_img
         in_img = cv2.imread(in_img_fol)
-    # converting image to YUV in order to modify only the Y component
+    # converting image to HSV in order to modify only the V component
     img_hsv = cv2.cvtColor(in_img.astype("float32") / 255., cv2.COLOR_BGR2HSV)
     # Adding the constant to the Y component
     img_hsv[::, ::, 2] += lvl

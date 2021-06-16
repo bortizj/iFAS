@@ -20,9 +20,9 @@ import numpy as np
 import cv2
 
 
-def color_deltaE(img_ref, img_tst):
+def deltaE(img_ref, img_tst):
     return np.nan
 
 
-def color_deltaE2000(img_ref, img_tst):
+def deltaE2000(img_ref, img_tst):
     return np.nan

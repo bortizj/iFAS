@@ -481,7 +481,7 @@ class AppIFAS(object):
                 self.logger.print(level="INFO", message="Data loaded finished!")
                 tk.messagebox.showinfo("Information", "DATA LOADED", master=self.win)
 
-        # Displays the first soruce and test images
+        # Displays the first source and test images
         self.ref_img_idx = 0
         self.tst_img_idx = 0
         crt_ref = self.db.db_folder.joinpath(
@@ -532,7 +532,7 @@ class AppIFAS(object):
             )
         self.logger.print(level="INFO", message="Scatter plot finished ")
 
-    # Bar plot of the available correlations between mesures
+    # Bar plot of the available correlations between measures
     def bar_plot(self):
         self.logger.print(level="INFO", message="Bar plot started ")
         if not self.verify_db():
@@ -553,7 +553,7 @@ class AppIFAS(object):
 
         self.logger.print(level="INFO", message="Bar plot finished ")
 
-    # Box plot of the available correlations between mesures per source
+    # Box plot of the available correlations between measures per source
     def box_plot(self):
         self.logger.print(level="INFO", message="Box plot started ")
         if not self.verify_db():
@@ -569,7 +569,7 @@ class AppIFAS(object):
 
         self.logger.print(level="INFO", message="Box plot finished ")
 
-    # Regression plot of available measures with the dmos
+    # Regression plot of available measures with the human scores
     def reg_plot(self):
         self.logger.print(level="INFO", message="Regression plot started ")
         if not self.verify_db():

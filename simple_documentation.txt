@@ -18,7 +18,7 @@ Note: the source image has a settings file named db_settings with the following 
 row one is the name of the distortion which should be at add_distortions.py
 row two is the levels of distortion in comma separated values
 
-# Run Button
+# Process Button
 Select the measures in the measures pane.
 Click Run and select the folder of the set of source and test images. 
 A popup window with progress bar shows the progress of the computations.
@@ -58,7 +58,7 @@ to the top five correlations is shown.
 
 # Scatter plot button
 After loading a database, it is possible to display a scatter plot of the data. 
-A new window appear with one of the measures in the x axis and the another measure 
+A new window appears with one of the measures in the x axis and another measure 
 in the y axis (the axis are labeled correspondly to the measure). The plot 
 can be controlled using the left, right, up and down keys in order to change 
 between the different measures.
@@ -73,7 +73,7 @@ human evaluations.
 # Box plot button
 After loading a database, it is possible to show the correlation against the 
 target variable for each measure in form of the box plot. Each box represents 
-the correlation distribution for each source variable. 
+the correlation distribution for each source image. 
 
 # Regression plot button
 It is possible to show the results of the regression model after its 
