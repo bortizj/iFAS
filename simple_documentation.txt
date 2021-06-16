@@ -20,7 +20,7 @@ row two is the levels of distortion in comma separated values
 
 # Process Button
 Select the measures in the measures pane.
-Click Run and select the folder of the set of source and test images. 
+Click Process and select the folder of the set of source and test images. 
 A popup window with progress bar shows the progress of the computations.
 Results in a csv file on the database folder named *_ifas_ouput.csv
 
@@ -50,30 +50,29 @@ For example:
 # Correlation button
 After loading a database, it is possible to compute correlations between the 
 measures available in the csv file that should be together with your database 
-(see Run button for details). The results is the legend of the measures together 
+(see Process button for details). The results is the legend of the measures together 
 with a heat map of the correlations. The correlations are exported as csv files 
-in the database directory: *_ifas_dist_corr.csv, _ifas_pearson.csv, 
-_ifas_spearman.csv and _ifas_tau.csv. In the correlations pane information related 
+in the database directory: *_ifas_dist_corr.csv, *_ifas_pearson.csv, 
+*_ifas_spearman.csv and *_ifas_tau.csv. In the correlations pane information related 
 to the top five correlations is shown.
 
 # Scatter plot button
 After loading a database, it is possible to display a scatter plot of the data. 
 A new window appears with one of the measures in the x axis and another measure 
-in the y axis (the axis are labeled correspondly to the measure). The plot 
+in the y axis (the axis are labeled correspondingly to the measure). The plot 
 can be controlled using the left, right, up and down keys in order to change 
 between the different measures.
 
 # Bar plot button
 After computing correlations between the measures, it is possible to display a 
-bar plot of the correlations of each measure agaianst the target variable.
-In iFAS the atarget variable is always the last column of the csv file of the 
-database. This column can be modified by the user to include for instance 
-human evaluations.
+bar plot of the correlations of each measure against the target variable.
+In iFAS the target variable is selected in the Modeling pane.
 
 # Box plot button
 After loading a database, it is possible to show the correlation against the 
 target variable for each measure in form of the box plot. Each box represents 
-the correlation distribution for each source image. 
+the correlation distribution when the correlation is independetly computed for 
+each source image. 
 
 # Regression plot button
 It is possible to show the results of the regression model after its 
@@ -83,17 +82,17 @@ measure). The plot can be controlled using the left, right keys in order to
 change between the different measures.
 
 # Navigation buttons on top of the images
-Left or Right to move across the reference image (left frame) and the test 
-images (right frame).
+Left or Right to move across the reference image (left pane) and the test 
+images (right pane).
 
 # Model combobox 
 To select between the available regression models
 
 # Target
-The dependend or target variable for the regression model
+The dependent or target variable for the regression model
 
 # Parameters ini
-The set of parameters to be used as initial guess in the regression model
+The set of parameters to be used as initial guess in the optimization algorithm
 
 # Optimize
 This button starts the optimization of the selected model using the selected 

@@ -42,6 +42,10 @@ PATH_MEASURES = PATH_FILE.parents[0].joinpath("fidelity_measures")
 LIST_VALID_EXTENSIONS = [".png", ".jpg", ".bmp"]
 CHOICES_MODEL = ["linear", "quadratic", "cubic", "exponential", "logistic", "complementary_error"]
 LENGHT_PARAMETERS = {"linear": 2, "quadratic": 3, "cubic": 4, "exponential": 3, "logistic": 3, "complementary_error": 2}
+DEFAULT_PARAMETERS = {
+    "linear": "-1,1", "quadratic": "-1,0.5,1", "cubic": "-1,0.5,-0.5,1", "exponential": "-1,0.5,1", 
+    "logistic": "-1,0.5,1", "complementary_error": "0.5,-0.5"
+    }
 # Oneliner to get all the functions in the add_distortion script
 LIST_DIST = [fun_name[0] for fun_name in inspect.getmembers(add_distortions, inspect.isfunction)]
 
@@ -282,9 +286,16 @@ class AppIFAS(object):
     # Setting controls for modeling
     def set_buttons_models(self):
         self.logger.print(level="DEBUG", message="Set set_buttons_models started!")
+        self.label_entry = tk.Label(master=self.frame_models, bg="black", fg="white", font=18, text="Parameters ini:")
+        self.label_entry.place(relx=0.1, rely=0.52, relheight=0.215, relwidth=0.4)
+        self.par_entry = tk.Entry(self.frame_models, font=18)
+        self.par_entry.insert(0, DEFAULT_PARAMETERS["linear"])
+        self.par_entry.place(relx=0.55, rely=0.52, relheight=0.215, relwidth=0.4)
+
         self.label_functions = tk.Label(master=self.frame_models, bg="black", fg="white", font=18, text="Model:")
         self.label_functions.place(relx=0.1, rely=0.02, relheight=0.215, relwidth=0.4)
         self.combobox_functions = ttk.Combobox(self.frame_models, values=CHOICES_MODEL, font=18)
+        self.combobox_functions.bind('<<ComboboxSelected>>', self.combobox_functions_changed)
         self.combobox_functions.current(0)
         self.combobox_functions.place(relx=0.55, rely=0.02, relheight=0.215, relwidth=0.4)
 
@@ -295,11 +306,6 @@ class AppIFAS(object):
         self.combobox_features = ttk.Combobox(self.frame_models, values=choices_feat, font=18)
         self.combobox_features.current(0)
         self.combobox_features.place(relx=0.55, rely=0.27, relheight=0.215, relwidth=0.4)
-
-        self.label_entry = tk.Label(master=self.frame_models, bg="black", fg="white", font=18, text="Parameters ini:")
-        self.label_entry.place(relx=0.1, rely=0.52, relheight=0.215, relwidth=0.4)
-        self.par_entry = tk.Entry(self.frame_models, font=18)
-        self.par_entry.place(relx=0.55, rely=0.52, relheight=0.215, relwidth=0.4)
 
         self.button_start_model = tk.Button(
             master=self.frame_models, bg="black", fg="white", activebackground="gray", font=18, text="Optimize", 
@@ -707,3 +713,9 @@ class AppIFAS(object):
 
         self.logger.print(level="INFO", message="Optimization finished ")
         self.reg_plot()
+
+    # Function to update the default settings when the model changes
+    def combobox_functions_changed(self, event=None):
+        model = self.combobox_functions.get()
+        self.par_entry.delete(0, "end")
+        self.par_entry.insert(0, DEFAULT_PARAMETERS[model])
