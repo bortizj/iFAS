@@ -51,3 +51,28 @@ def median_threshold(img, std_fact=4.4478):
     stdev = np.median(np.abs(img - med))
     th = med + std_fact * stdev
     return th
+
+
+# Brightness weight for jncd_delta_e
+def rho_jncd_delta_e(mu_y):
+    rho_mu_y = np.zeros_like(mu_y)
+    rho_mu_y[mu_y <= 6] = 0.06
+    rho_mu_y[np.logical_and(mu_y > 6, mu_y <= 100)] = 0.04
+    rho_mu_y[np.logical_and(mu_y > 100, mu_y <= 140)] = 0.01
+    rho_mu_y[mu_y > 140] = 0.03
+
+    return rho_mu_y
+
+# Colorfullness based on Gao formula
+def colorfulness(img_bgr):
+    K = 2
+    alpha = img_bgr[:, :, 2] - img_bgr[:, :, 1]
+    beta = 0.5 * (img_bgr[:, :, 2] + img_bgr[:, :, 1]) - img_bgr[:, :, 1]
+    mu_alpha = np.mean(alpha)
+    mu_beta = np.mean(beta)
+    sigma_alpha_sq = np.var(alpha)
+    sigma_beta_sq = np.var(beta)
+    c = 0.02 * np.log(sigma_alpha_sq / (np.power(np.abs(mu_alpha), 0.2) + K) + K) * \
+        np.log(sigma_beta_sq / (np.power(np.abs(mu_beta), 0.2) + K) + K)
+
+    return c

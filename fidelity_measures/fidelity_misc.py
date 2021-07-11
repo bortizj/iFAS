@@ -43,8 +43,12 @@ def ssim(ref_img, tst_img, *argv):
     elif len(argv) < 3:
         k, wsize = argv[0], argv[1]
 
-    ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype("float32")
-    tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype("float32")
+    if len(ref_img.shape) == 3:
+        ref_img_gray = cv2.cvtColor(ref_img, cv2.COLOR_BGR2GRAY).astype("float32")
+        tst_img_gray = cv2.cvtColor(tst_img, cv2.COLOR_BGR2GRAY).astype("float32")
+    else:
+        ref_img_gray = ref_img.astype("float32")
+        tst_img_gray = tst_img.astype("float32")
 
     c1 = (k[0] * 255) ** 2
     c2 = (k[1] * 255) ** 2

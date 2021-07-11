@@ -15,44 +15,44 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 author: Benhur Ortiz-Jaramillo
 """
 
-from processing import extract_contrast
+from processing import compute_contrast
 
 
 def sme_dif(ref_img, tst_img):
-    sme_ref, __ = extract_contrast.sme(ref_img)
-    sme_tst, __ = extract_contrast.sme(tst_img)
+    sme_ref, __ = compute_contrast.sme(ref_img)
+    sme_tst, __ = compute_contrast.sme(tst_img)
     dif = sme_ref - sme_tst
 
     return dif
 
 
 def wme_dif(ref_img, tst_img):
-    wme_ref, __ = extract_contrast.wme(ref_img)
-    wme_tst, __ = extract_contrast.wme(tst_img)
+    wme_ref, __ = compute_contrast.wme(ref_img)
+    wme_tst, __ = compute_contrast.wme(tst_img)
     dif = wme_ref - wme_tst
 
     return dif
 
 
 def mme_dif(ref_img, tst_img):
-    mme_ref, __ = extract_contrast.mme(ref_img)
-    mme_tst, __ = extract_contrast.mme(tst_img)
+    mme_ref, __ = compute_contrast.mme(ref_img)
+    mme_tst, __ = compute_contrast.mme(tst_img)
     dif = mme_ref - mme_tst
 
     return dif
 
 
 def rme_dif(ref_img, tst_img):
-    rme_ref, __ = extract_contrast.rme(ref_img)
-    rme_tst, __ = extract_contrast.rme(tst_img)
+    rme_ref, __ = compute_contrast.rme(ref_img)
+    rme_tst, __ = compute_contrast.rme(tst_img)
     dif = rme_ref - rme_tst
 
     return dif
 
 
 def peli_dif(ref_img, tst_img):
-    peli_ref, __ = extract_contrast.contrast_peli(ref_img)
-    peli_tst, __ = extract_contrast.contrast_peli(tst_img)
+    peli_ref, __ = compute_contrast.contrast_peli(ref_img)
+    peli_tst, __ = compute_contrast.contrast_peli(tst_img)
     dif = peli_ref - peli_tst
 
     return dif
