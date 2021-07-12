@@ -18,6 +18,7 @@ author: Benhur Ortiz-Jaramillo
 
 from processing import img_misc, color_transform
 from fidelity_measures import fidelity_misc
+from gui import ifas_misc
 import numpy as np
 import cv2
 
@@ -48,7 +49,6 @@ def diff_hue_saturation(img_ref, img_tst):
     delta_h = np.abs(np.mean(hsv_ref[::, ::, 0]) - np.mean(hsv_tst[::, ::, 0]))
     delta_s = np.abs(np.mean(hsv_ref[::, ::, 1]) - np.mean(hsv_tst[::, ::, 1]))
     delta_hs = w1 * delta_h + w2 * delta_s
-    
 
     return delta_hs
 
@@ -110,7 +110,7 @@ def adaptive_image_difference(img_ref, img_tst, sizewin=5):
     return delta_ascd
 
 
-def delta_e2000(img_ref, img_tst):
+def delta_e2000(img_ref, img_tst, return_mat=False):
     """
     # Delta E 2000 color difference -> http://zschuessler.github.io/DeltaE/learn/
     """
@@ -182,7 +182,10 @@ def delta_e2000(img_ref, img_tst):
         )
     de00 = np.mean(img_de00)
 
-    return de00
+    if return_mat:
+        return img_de00, hp_tst
+    else:
+        return de00
 
 
 def color_mahalanobis(img_ref, img_tst):
@@ -237,10 +240,10 @@ def color_mahalanobis(img_ref, img_tst):
     deltal = l_ref - l_tst
     deltac = cp_ref - cp_tst
     deltah = hp_ref - hp_tst
-    CDM = A[0, 0] * np.power(deltal, 2) + A[1, 1] * np.power(deltac, 2) + A[2, 2] * np.power(deltah, 2) + \
+    img_m = A[0, 0] * np.power(deltal, 2) + A[1, 1] * np.power(deltac, 2) + A[2, 2] * np.power(deltah, 2) + \
         2 * A[0, 1] * (deltal * deltac) + 2 * A[0, 2] * (deltal * deltah) + 2 * A[1, 2] * (deltac * deltah)
-    CDM = np.sqrt(CDM)
-    cdm = np.mean(CDM[:])
+    img_m = np.sqrt(img_m)
+    cdm = np.mean(img_m)
 
     return cdm
 
@@ -321,3 +324,121 @@ def color_ssim(img_ref, img_tst):
     cssim = np.sqrt(wl * mssim_l * mssim_l + walpha * mssim_alpha * mssim_alpha + wbeta * mssim_beta * mssim_beta)
 
     return cssim
+
+
+def local_de2000(img_ref, img_tst):
+    """
+    S. Ouni, E. Zagrouba, M. Chambah, M. Herbin, A new spatial colour metricfor perceptual comparison, in: 
+    Proc. of the International Conference on615Computing and e-Systems, 2008, pp. 413 – 428.
+    """
+    img_de00, __ = delta_e2000(img_ref, img_tst, return_mat=True)
+    w = np.array([[0.5, 1., 0.5], [1., 0., 1.], [0.5, 1., 0.5]]).astype("float32")
+    img_de00_w = cv2.filter2D(img_de00.astype("float32"), -1, w, borderType=cv2.BORDER_REPLICATE)
+    wde = np.mean((img_de00 + img_de00_w) / 7)
+
+    return wde
+
+
+def spatial_delta_e2000(img_ref, img_tst, return_imgs=False):
+    """
+    X. Zhang and B.A. Wandell. A spatial extension of CIELAB for digital color-image reproduction.
+    Journal of the Society for Information Display, 5:61 – 63, 1997.
+    """
+    wi = np.array([[0.921, 0.105, -0.108], [0.531, 0.330, 0], [0.488, 0.371, 0]]).astype("float32")
+    si = np.array([[0.0283, 0.133, 4.336], [0.0392, 0.494, 0], [0.0536, 0.386, 0]]).astype("float32")
+    xx, yy = np.meshgrid(np.arange(-11, 12), np.arange(-11, 12))
+
+    h1 = wi[0, 0] * ifas_misc.gaussian(xx, yy, si[0, 0]) +  wi[0, 1] * ifas_misc.gaussian(xx, yy, si[0, 1]) + \
+        wi[0, 2] * ifas_misc.gaussian(xx, yy, si[0, 2])
+    h1 = (h1 / np.sum(h1)).astype("float32")
+
+    h2 = wi[1, 0] * ifas_misc.gaussian(xx, yy, si[1, 0]) + wi[1, 1] * ifas_misc.gaussian(xx, yy, si[1, 1])
+    h2 = (h2 / np.sum(h2)).astype("float32")
+
+    h3 = wi[2, 0] * ifas_misc.gaussian(xx, yy, si[2, 0]) + wi[2, 1] * ifas_misc.gaussian(xx, yy, si[2, 1])
+    h3 = (h3 / np.sum(h3)).astype("float32")
+
+    xyz_ref = color_transform.linear_color_transform(
+        cv2.cvtColor(img_ref, cv2.COLOR_BGR2RGB) / 255., tr_type="rgb_to_xyz"
+        )
+    xyz_tst = color_transform.linear_color_transform(
+        cv2.cvtColor(img_tst, cv2.COLOR_BGR2RGB) / 255., tr_type="rgb_to_xyz"
+        )
+
+    o123_ref = color_transform.linear_color_transform(xyz_ref, tr_type="xyz_to_o1o2o3").astype("float32")
+    o123_tst = color_transform.linear_color_transform(xyz_tst, tr_type="xyz_to_o1o2o3").astype("float32")
+
+    o1_ref = cv2.filter2D(o123_ref[:, :, 0], -1, h1, borderType=cv2.BORDER_REPLICATE)
+    o2_ref = cv2.filter2D(o123_ref[:, :, 1], -1, h2, borderType=cv2.BORDER_REPLICATE)
+    o3_ref = cv2.filter2D(o123_ref[:, :, 2], -1, h3, borderType=cv2.BORDER_REPLICATE)
+    o1_tst = cv2.filter2D(o123_tst[:, :, 0], -1, h1, borderType=cv2.BORDER_REPLICATE)
+    o2_tst = cv2.filter2D(o123_tst[:, :, 1], -1, h2, borderType=cv2.BORDER_REPLICATE)
+    o3_tst = cv2.filter2D(o123_tst[:, :, 2], -1, h3, borderType=cv2.BORDER_REPLICATE)
+
+    xyz_ref = color_transform.linear_color_transform(
+        np.dstack((o1_ref, o2_ref, o3_ref)), tr_type="o1o2o3_to_xyz"
+        ).astype("float32")
+    xyz_tst = color_transform.linear_color_transform(
+        np.dstack((o1_tst, o2_tst, o3_tst)), tr_type="o1o2o3_to_xyz"
+        ).astype("float32")
+    rgb_ref = color_transform.linear_color_transform(xyz_ref, tr_type="xyz_to_rgb").astype("float32")
+    rgb_tst = color_transform.linear_color_transform(xyz_tst, tr_type="xyz_to_rgb").astype("float32")
+    rgb_ref = np.clip(255 * rgb_ref, 0, 255).astype("uint8")
+    rgb_tst = np.clip(255 * rgb_tst, 0, 255).astype("uint8")
+
+    img_de00, __ = delta_e2000(
+        cv2.cvtColor(rgb_ref, cv2.COLOR_BGR2RGB), cv2.cvtColor(rgb_tst, cv2.COLOR_BGR2RGB), return_mat=True
+        )
+    sde00 = np.mean(img_de00)
+
+    if return_imgs:
+        return rgb_ref, rgb_tst
+    else:
+        return sde00
+
+
+def wdelta_e(img_ref, img_tst):
+    """
+    G. Hong, M. Luo, A new algorithm for calculating perceived colourdiffer-ence of images, 
+    Imaging Science Journal 54 (2006) 1 – 15.
+    """
+    img_de00, hp_tst = delta_e2000(img_ref, img_tst, return_mat=True)
+
+    h_edges = np.linspace(0, 360, 181)
+    hist_c, __ = np.histogram(180 * np.reshape(hp_tst, hp_tst.size) / np.pi, h_edges)
+    ind = np.digitize(180 * hp_tst / np.pi, h_edges)
+    hist_c = hist_c / np.sum(hist_c)
+    index_sort = np.argsort(hist_c)
+    hists_sort = hist_c[index_sort]
+    hists_sort = np.cumsum(hists_sort)
+
+    k_25 = np.where(hists_sort > 0.25)[0][0]
+    k_50 = np.where(hists_sort > 0.50)[0][0]
+    k_75 = np.where(hists_sort > 0.75)[0][0]
+
+    hist_c[index_sort[0:k_25]] = hist_c[index_sort[0:k_25]]/4
+    hist_c[index_sort[k_25:k_50]] = hist_c[index_sort[k_25:k_50]]/2
+    hist_c[index_sort[k_50:k_75]] = hist_c[index_sort[k_50:k_75]]
+    hist_c[index_sort[k_75:]] = 2.25*hist_c[index_sort[k_75:]]
+
+    h_dis = np.zeros_like(hist_c)
+    img_de00_w = np.zeros_like(img_de00)
+    for ii in range(0, h_dis.size):
+        if np.sum(ind == ii) != 0:
+            h_dis[ii] = np.mean(img_de00[ind == ii])
+            img_de00_w[ind == ii] = img_de00[ind == ii] * hist_c[ii]
+
+    w_delta_e = np.sum(np.power(h_dis, 2) * hist_c) / 4
+
+    return w_delta_e
+
+
+def shame_cielab(img_ref, img_tst):
+    """
+    M. Pedersen, J. Hardeberg, A new spatial filtering based imagedifferencemetric based on hue angle weighting, 
+    Journal of Imaging Science andTech-nology 56 (2012) 50501 1 – 12.
+    """
+    rgb_ref, rgb_tst = spatial_delta_e2000(img_ref, img_tst, return_imgs=True)
+    shame_de = wdelta_e(cv2.cvtColor(rgb_ref, cv2.COLOR_RGB2BGR), cv2.cvtColor(rgb_tst, cv2.COLOR_RGB2BGR))
+
+    return shame_de

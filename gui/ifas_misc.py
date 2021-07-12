@@ -33,6 +33,12 @@ def convert_ifnan(x, val=0):
     return y
 
 
+# Creates a simple gaussian filter
+def gaussian(x, y, sigma):
+    g = np.exp(-((x * x + y * y) / (sigma * sigma)))
+    return g / np.sum(g)
+
+
 # Creates iFas logo image
 def logo_image(size_in):
     # Create a black image

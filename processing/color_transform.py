@@ -40,3 +40,27 @@ def bgr_to_l_alpha_beta(img):
     beta = A[2, 0] * L + A[2, 1] * M + A[2, 2] * S
 
     return np.dstack((l, alpha, beta))
+
+
+def linear_color_transform(img, tr_type="rgb_to_xyz"):
+    in_img = img.astype("float32")
+    if tr_type == "rgb_to_xyz":
+        tr_mat = np.array(
+            [[42.62846,  38.29084,  13.67019], [21.64618,  72.06528,   5.83799], [1.77295,  12.93408,  92.75945]]
+            )
+    elif tr_type == "xyz_to_rgb":
+        tr_mat = np.array(
+            [[42.62846,  38.29084,  13.67019], [21.64618,  72.06528,   5.83799], [1.77295,  12.93408,  92.75945]]
+            )
+        tr_mat = np.linalg.inv(tr_mat)
+    elif tr_type == "xyz_to_o1o2o3":
+        tr_mat = np.array([[0.2787,  0.7218, -0.1066], [-0.4488,  0.2898, -0.0772], [0.0860, -0.5900,  0.5011]])
+    elif tr_type == "o1o2o3_to_xyz":
+        tr_mat = np.array([[0.2787,  0.7218, -0.1066], [-0.4488,  0.2898, -0.0772], [0.0860, -0.5900,  0.5011]])
+        tr_mat = np.linalg.inv(tr_mat)
+
+    out1 = tr_mat[0, 0] * in_img[:, :, 0] + tr_mat[0, 1] * in_img[:, :, 1] + tr_mat[0, 2] * in_img[:, :, 2]
+    out2 = tr_mat[1, 0] * in_img[:, :, 0] + tr_mat[1, 1] * in_img[:, :, 1] + tr_mat[1, 2] * in_img[:, :, 2]
+    out3 = tr_mat[2, 0] * in_img[:, :, 0] + tr_mat[2, 1] * in_img[:, :, 1] + tr_mat[2, 2] * in_img[:, :, 2]
+
+    return np.dstack((out1, out2, out3))
