@@ -34,7 +34,7 @@ def psnr(ref_img, tst_img):
 # Z. Wang, et.al.
 # Image quality assessment: from error visibility to structural similarity
 # IEEE Transactions on Image processing 2004
-def ssim(ref_img, tst_img, *argv):
+def ssim(ref_img, tst_img, ismap=False, *argv):
     # Checcking if there are more arguments or setting to default
     if len(argv) < 1:
         k, wsize = [0.01, 0.03], 11
@@ -80,7 +80,10 @@ def ssim(ref_img, tst_img, *argv):
         index = (denominator1 != 0) & (denominator2 == 0)
         ssim_map[index] = numerator1[index] / denominator1[index]
 
-    return np.nanmean(ssim_map)
+    if ismap:
+        return ssim_map
+    else:
+        return np.nanmean(ssim_map)
 
 
 # B. Goossens, et.al.

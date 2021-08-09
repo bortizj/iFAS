@@ -16,7 +16,7 @@ author: Benhur Ortiz-Jaramillo
 """
 
 
-from processing import img_misc, color_transform
+from processing import img_misc, color_transform, icam, compute_texture
 from fidelity_measures import fidelity_misc
 from gui import ifas_misc
 import numpy as np
@@ -77,7 +77,7 @@ def adaptive_image_difference(img_ref, img_tst, sizewin=5):
             A[0:samples:3, 0] = a1.ravel()
             a2 = temp_ref[::, ::, 1]
             A[1:samples:3, 1] = a2.ravel()
-            a3 = temp_ref[:,:, 2]
+            a3 = temp_ref[::, ::, 2]
             A[1:samples:3, 2] = a3.ravel()
 
             rgb_vec_ref = A[::, 0] + A[::, 1] + A[::, 2]
@@ -123,9 +123,9 @@ def delta_e2000(img_ref, img_tst, return_mat=False):
     b_ref = lab_ref[::, ::, 2]
     c_ref = np.sqrt(np.power(a_ref, 2) + np.power(b_ref, 2))
 
-    l_tst = lab_tst[:, :, 0]
-    a_tst = lab_tst[:, :, 1]
-    b_tst = lab_tst[:, :, 2]
+    l_tst = lab_tst[::, ::, 0]
+    a_tst = lab_tst[::, ::, 1]
+    b_tst = lab_tst[::, ::, 2]
     c_tst = np.sqrt(np.power(a_tst, 2) + np.power(b_tst, 2))
 
     c_avg = (c_ref + c_tst) / 2.
@@ -201,9 +201,9 @@ def color_mahalanobis(img_ref, img_tst):
     b_ref = lab_ref[::, ::, 2]
     c_ref = np.sqrt(np.power(a_ref, 2) + np.power(b_ref, 2))
 
-    l_tst = lab_tst[:, :, 0]
-    a_tst = lab_tst[:, :, 1]
-    b_tst = lab_tst[:, :, 2]
+    l_tst = lab_tst[::, ::, 0]
+    a_tst = lab_tst[::, ::, 1]
+    b_tst = lab_tst[::, ::, 2]
     c_tst = np.sqrt(np.power(a_tst, 2) + np.power(b_tst, 2))
 
     c_avg = (c_ref + c_tst) / 2.
@@ -368,12 +368,12 @@ def spatial_delta_e2000(img_ref, img_tst, return_imgs=False):
     o123_ref = color_transform.linear_color_transform(xyz_ref, tr_type="xyz_to_o1o2o3").astype("float32")
     o123_tst = color_transform.linear_color_transform(xyz_tst, tr_type="xyz_to_o1o2o3").astype("float32")
 
-    o1_ref = cv2.filter2D(o123_ref[:, :, 0], -1, h1, borderType=cv2.BORDER_REPLICATE)
-    o2_ref = cv2.filter2D(o123_ref[:, :, 1], -1, h2, borderType=cv2.BORDER_REPLICATE)
-    o3_ref = cv2.filter2D(o123_ref[:, :, 2], -1, h3, borderType=cv2.BORDER_REPLICATE)
-    o1_tst = cv2.filter2D(o123_tst[:, :, 0], -1, h1, borderType=cv2.BORDER_REPLICATE)
-    o2_tst = cv2.filter2D(o123_tst[:, :, 1], -1, h2, borderType=cv2.BORDER_REPLICATE)
-    o3_tst = cv2.filter2D(o123_tst[:, :, 2], -1, h3, borderType=cv2.BORDER_REPLICATE)
+    o1_ref = cv2.filter2D(o123_ref[::, ::, 0], -1, h1, borderType=cv2.BORDER_REPLICATE)
+    o2_ref = cv2.filter2D(o123_ref[::, ::, 1], -1, h2, borderType=cv2.BORDER_REPLICATE)
+    o3_ref = cv2.filter2D(o123_ref[::, ::, 2], -1, h3, borderType=cv2.BORDER_REPLICATE)
+    o1_tst = cv2.filter2D(o123_tst[::, ::, 0], -1, h1, borderType=cv2.BORDER_REPLICATE)
+    o2_tst = cv2.filter2D(o123_tst[::, ::, 1], -1, h2, borderType=cv2.BORDER_REPLICATE)
+    o3_tst = cv2.filter2D(o123_tst[::, ::, 2], -1, h3, borderType=cv2.BORDER_REPLICATE)
 
     xyz_ref = color_transform.linear_color_transform(
         np.dstack((o1_ref, o2_ref, o3_ref)), tr_type="o1o2o3_to_xyz"
@@ -442,3 +442,364 @@ def shame_cielab(img_ref, img_tst):
     shame_de = wdelta_e(cv2.cvtColor(rgb_ref, cv2.COLOR_RGB2BGR), cv2.cvtColor(rgb_tst, cv2.COLOR_RGB2BGR))
 
     return shame_de
+
+
+def visual_saliency_index(img_ref, img_tst):
+    """
+    L. Zhang, Y. Shen, and H. Li. Vsi: A visual saliency-induced index for perceptual image quality 
+    assessment. IEEE Transactions on Image Processing, 23:4270 – 4281, 2014.
+    """
+    constForVS = 1.27
+    constForGM = 386
+    constForChrom = 130
+    alpha = 0.40
+    lambda_ = 0.020
+    sigmaF = 1.34
+    omega0 = 0.0210
+    sigmaD = 145
+    sigmaC = 0.001
+
+    sm1 = img_misc.salient_regions(img_ref, sigma_f=sigmaF, omega_0=omega0, sigma_d=sigmaD, sigma_c=sigmaC)
+    sm2 = img_misc.salient_regions(img_tst, sigma_f=sigmaF, omega_0=omega0, sigma_d=sigmaD, sigma_c=sigmaC)
+
+    rows, cols, _ = img_ref.shape
+    L1 = 0.06 * img_ref[::, ::, 0] + 0.63 * img_ref[::, ::, 1] + 0.27 * img_ref[::, ::, 2]
+    L2 = 0.06 * img_tst[::, ::, 0] + 0.63 * img_tst[::, ::, 1] + 0.27 * img_tst[::, ::, 2]
+    M1 = 0.30 * img_ref[::, ::, 0] + 0.04 * img_ref[::, ::, 1] - 0.35 * img_ref[::, ::, 2]
+    M2 = 0.30 * img_tst[::, ::, 0] + 0.04 * img_tst[::, ::, 1] - 0.35 * img_tst[::, ::, 2]
+    N1 = 0.34 * img_ref[::, ::, 0] - 0.60 * img_ref[::, ::, 1] + 0.17 * img_ref[::, ::, 2]
+    N2 = 0.34 * img_tst[::, ::, 0] - 0.60 * img_tst[::, ::, 1] + 0.17 * img_tst[::, ::, 2]
+
+    min_dim = np.minimum(rows, cols)
+    w = int(np.maximum(1, np.round(min_dim / 256)))
+    aveKernel = np.ones((w, w)) / (w * w)
+
+    aveM1 = cv2.filter2D(M1, ddepth=-1, kernel=aveKernel, borderType=cv2.BORDER_REFLECT_101)
+    aveM2 = cv2.filter2D(M2, ddepth=-1, kernel=aveKernel, borderType=cv2.BORDER_REFLECT_101)
+
+    M1 = aveM1[0:rows:w, 0:cols:w]
+    M2 = aveM2[0:rows:w, 0:cols:w]
+
+    aveN1 = cv2.filter2D(N1, ddepth=-1, kernel=aveKernel, borderType=cv2.BORDER_REFLECT_101)
+    aveN2 = cv2.filter2D(N2, ddepth=-1, kernel=aveKernel, borderType=cv2.BORDER_REFLECT_101)
+
+    N1 = aveN1[0:rows:w, 0:cols:w]
+    N2 = aveN2[0:rows:w, 0:cols:w]
+
+    aveL1 = cv2.filter2D(L1, ddepth=-1, kernel=aveKernel, borderType=cv2.BORDER_REFLECT_101)
+    aveL2 = cv2.filter2D(L2, ddepth=-1, kernel=aveKernel, borderType=cv2.BORDER_REFLECT_101)
+
+    L1 = aveL1[0:rows:w, 0:cols:w]
+    L2 = aveL2[0:rows:w, 0:cols:w]
+
+    aveSM1 = cv2.filter2D(sm1, ddepth=-1, kernel=aveKernel, borderType=cv2.BORDER_REFLECT_101)
+    aveSM2 = cv2.filter2D(sm2, ddepth=-1, kernel=aveKernel, borderType=cv2.BORDER_REFLECT_101)
+
+    sm1 = aveSM1[0:rows:w, 0:cols:w]
+    sm2 = aveSM2[0:rows:w, 0:cols:w]
+
+    dx = np.array([[3, 0, -3], [10, 0, -10], [3, 0, -3]])/16.
+    dy = np.array([[3, 10, 3], [0, 0, 0], [-3, -10, -3]])/16.
+
+    IxL1 = cv2.filter2D(L1, ddepth=-1, kernel=dx, borderType=cv2.BORDER_REFLECT_101)
+    IyL1 = cv2.filter2D(L1, ddepth=-1, kernel=dy, borderType=cv2.BORDER_REFLECT_101)
+    gradientMap1 = np.sqrt(np.power(IxL1, 2) + np.power(IyL1, 2))
+
+    IxL2 = cv2.filter2D(L2, ddepth=-1, kernel=dx, borderType=cv2.BORDER_REFLECT_101)
+    IyL2 = cv2.filter2D(L2, ddepth=-1, kernel=dy, borderType=cv2.BORDER_REFLECT_101)
+    gradientMap2 = np.sqrt(np.power(IxL2, 2) + np.power(IyL2, 2))
+
+    VSSimMatrix = (2 * sm1 * sm2 + constForVS) / (np.power(sm1, 2) + np.power(sm2, 2) + constForVS)
+    gradientSimMatrix = (
+        (2 * gradientMap1 * gradientMap2 + constForGM) / 
+        (np.power(gradientMap1, 2) + np.power(gradientMap2, 2) + constForGM)
+        )
+
+    weight = np.maximum(sm1, sm2)
+
+    ISimMatrix = (2 * M1 * M2 + constForChrom) / (np.power(M1, 2) + np.power(M2, 2) + constForChrom)
+    QSimMatrix = (2 * N1 * N2 + constForChrom) / (np.power(N1, 2) + np.power(N2, 2) + constForChrom)
+
+    prod = ISimMatrix * QSimMatrix
+    prod[np.where(prod < 0)] = 0
+    SimMatrixC = np.power(gradientSimMatrix, alpha) * VSSimMatrix * np.real(np.power(prod, lambda_)) * weight
+    sim = np.nansum(SimMatrixC) / np.nansum(weight)
+    SimMatrixC[np.where(np.isnan(SimMatrixC))] = 0
+
+    return sim
+
+
+def chroma_spread_extreme(img_ref, img_tst):
+    """
+    M.H. Pinson and S. Wolf. A new standardized method for objectively measuring video quality. IEEE 
+    transactions on broadcasting, 50:312 – 322, 2004.
+    """
+    ycrcb_ref = cv2.cvtColor(img_ref, cv2.COLOR_BGR2YCrCb)
+    ycrcb_tst = cv2.cvtColor(img_tst, cv2.COLOR_BGR2YCrCb)
+
+    mCb_ref, mCr_ref, MuCb_ref, MuCr_ref = img_misc.mean8x8block(ycrcb_ref[::, ::, 2], ycrcb_ref[::, ::, 1])
+    mCb_pro, mCr_pro, MuCb_pro, MuCr_pro = img_misc.mean8x8block(ycrcb_tst[::, ::, 2], ycrcb_tst[::, ::, 1])
+
+    eCbCr = np.sqrt(np.power(mCb_ref - mCb_pro, 2) + np.power(mCr_ref - mCr_pro, 2))
+    ECbCr = np.sqrt(np.power(MuCb_ref - MuCb_pro, 2) + np.power(MuCr_ref - MuCr_pro, 2))
+    chroma_spread = np.std(eCbCr)
+
+    p = np.sort(np.array(eCbCr).ravel())[::-1]
+    chroma_extreme = np.mean(p[0:np.int_(p.size * 0.01)]) - p[np.int_(p.size * 0.01) - 1]
+
+    return 0.0192 * chroma_spread + 0.0076 * chroma_extreme
+
+
+def colorhist_diff(img_ref, img_tst):
+    """
+    S.M. Lee, J.H. Xin, and S. Westland. Evaluation of image similarity by histogram intersection. Color 
+    Research and Application, 30:265 – 274, 2005.
+    """
+    lab_ref = cv2.cvtColor((img_ref / 255).astype("float32"), cv2.COLOR_BGR2LAB)
+    lab_tst = cv2.cvtColor((img_tst / 255).astype("float32"), cv2.COLOR_BGR2LAB)
+
+    H_ref = img_misc.color_histogram(lab_ref, minc=np.array([0, -128, -128]), maxc=np.array([100, 127, 127]), nbins=8)
+    H_pro = img_misc.color_histogram(lab_tst, minc=np.array([0, -128, -128]), maxc=np.array([100, 127, 127]), nbins=8)
+
+    if np.sum(H_ref) != 0:
+        H_ref = H_ref / np.sum(H_ref)
+    if np.sum(H_pro) != 0:
+        H_pro = H_pro / np.sum(H_pro)
+
+    di = np.sum(np.minimum(H_ref, H_pro))
+
+    return di
+
+
+def cpsnrha(img_ref, img_tst, wsize=11):
+    """
+    N. Ponomarenko, O. Ieremeiev, V. Lukin, K. Egiazarian, and M. Carli. Modified image visual quality 
+    metrics for contrast change and mean shift accounting. In Proc. of the International Conference The 
+    Experience of Designing and Application of CAD Systems in Microelectronics, pages 305 – 311, 2011.
+    """
+    ycrcb_ref = cv2.cvtColor(img_ref, cv2.COLOR_BGR2YCrCb)
+    ycrcb_tst = cv2.cvtColor(img_tst, cv2.COLOR_BGR2YCrCb)
+
+    muy_ref = np.mean(ycrcb_ref[::, ::, 0])
+    mu_Cb_ref = np.mean(ycrcb_ref[::, ::, 2])
+    mu_Cr_ref = np.mean(ycrcb_ref[::, ::, 1])
+    muy_tst = np.mean(ycrcb_tst[::, ::, 0])
+    mu_Cb_tst = np.mean(ycrcb_tst[::, ::, 2])
+    mu_Cr_tst = np.mean(ycrcb_tst[::, ::, 1])
+
+    mu_delta_y = muy_ref - muy_tst
+    mu_delta_Cb = mu_Cb_ref - mu_Cb_tst
+    mu_delta_Cr = mu_Cr_ref - mu_Cr_tst
+
+    cy_tst = ycrcb_tst[::, ::, 0] + mu_delta_y
+    c_Cb_tst = ycrcb_tst[::, ::, 2] + mu_delta_Cb
+    c_Cr_tst = ycrcb_tst[::, ::, 1] + mu_delta_Cr
+
+    mu_CY_tst = np.mean(cy_tst)
+    mu_CCb_tst = np.mean(c_Cb_tst)
+    mu_CCr_tst = np.mean(c_Cr_tst)
+
+    PY = (
+        np.sum((ycrcb_ref[::, ::, 0] - muy_ref) * (cy_tst - mu_CY_tst)) / 
+        np.sum(np.power((cy_tst - mu_CY_tst), 2))
+        )
+    PCb = (
+        np.sum((ycrcb_ref[::, ::, 2] - mu_Cb_ref) * (c_Cb_tst - mu_CCb_tst)) / 
+        np.sum(np.power((c_Cb_tst - mu_CCb_tst), 2))
+        )
+    PCr = (
+        np.sum((ycrcb_ref[::, ::, 1] - mu_Cr_ref) * (c_Cr_tst - mu_CCr_tst)) / 
+        np.sum(np.power((c_Cr_tst - mu_CCr_tst), 2))
+        )
+    DY = PY * cy_tst
+    DCb = PCb * c_Cb_tst
+    DCr = PCr * c_Cr_tst
+
+    __, p_hvs_m_YCHMA, __, __ = img_misc.dct_block_mse(ycrcb_ref[::, ::, 0], cy_tst)
+    __, p_hvs_m_CbCHMA, __, __ = img_misc.dct_block_mse(ycrcb_ref[::, ::, 2], c_Cb_tst)
+    __, p_hvs_m_CrCHMA, __, __ = img_misc.dct_block_mse(ycrcb_ref[::, ::, 1], c_Cr_tst)
+    __, p_hvs_m_YDHMA, __, __ = img_misc.dct_block_mse(ycrcb_ref[::, ::, 0], DY)
+    __, p_hvs_m_CbDHMA, __, __ = img_misc.dct_block_mse(ycrcb_ref[::, ::, 2], DCb)
+    __, p_hvs_m_CrDHMA, __, __ = img_misc.dct_block_mse(ycrcb_ref[::, ::, 1], DCr)
+
+    if PY < 1:
+        c = 0.002
+    else:
+        c = 0.25
+
+    if p_hvs_m_YCHMA > p_hvs_m_YDHMA:
+        p_hvs_m_YCHMA = p_hvs_m_YDHMA + (p_hvs_m_YCHMA - p_hvs_m_YDHMA) * c
+    if p_hvs_m_CbCHMA > p_hvs_m_CbDHMA:
+        p_hvs_m_CbCHMA = p_hvs_m_CbDHMA + (p_hvs_m_CbCHMA - p_hvs_m_CbDHMA) * c
+    if p_hvs_m_CrCHMA > p_hvs_m_CrDHMA:
+        p_hvs_m_CrCHMA = p_hvs_m_CrDHMA + (p_hvs_m_CrCHMA - p_hvs_m_CrDHMA) * c
+
+    p_hvs_m_YCHMA += mu_delta_y * mu_delta_y * 0.04
+    p_hvs_m_CbCHMA += mu_delta_Cb * mu_delta_Cb * 0.04
+    p_hvs_m_CrCHMA += mu_delta_Cr * mu_delta_Cr * 0.04
+    p_hvs_m_YCHMA = img_misc.clip_psnr(p_hvs_m_YCHMA)
+    p_hvs_m_CbCHMA = img_misc.clip_psnr(p_hvs_m_CbCHMA)
+    p_hvs_m_CrCHMA = img_misc.clip_psnr(p_hvs_m_CrCHMA)
+
+    cpsnrhma = (p_hvs_m_YCHMA + p_hvs_m_CbCHMA * 0.5 + p_hvs_m_CrCHMA * 0.5) / (1 + 2 * 0.5)
+
+    return cpsnrhma
+
+
+def ssim_ipt(img_ref, img_tst):
+    """
+    N. Bonnier, F. Schmitt, H. Brettel, and S. Berche. Evaluation of spatial gamut mapping algorithms. 
+    In Proc. of the Color and Imaging Conference, pages 56 – 61, 2006.
+    """
+    img_ref = cv2.cvtColor(img_ref, cv2.COLOR_BGR2RGB)
+    img_tst = cv2.cvtColor(img_tst, cv2.COLOR_BGR2RGB)
+    iCAM_ref = icam.RGB2iCAM(img_ref)  # ipt_image
+    iCAM_tst = icam.RGB2iCAM(img_tst)
+    iCAM_ref[np.where(np.isnan(iCAM_ref))] = 0
+    iCAM_tst[np.where(np.isnan(iCAM_tst))] = 0
+    mssim_i = fidelity_misc.ssim(iCAM_ref[::, ::, 0], iCAM_tst[::, ::, 0])
+    mssim_p = fidelity_misc.ssim(iCAM_ref[::, ::, 1], iCAM_tst[::, ::, 1])
+    mssim_t = fidelity_misc.ssim(iCAM_ref[::, ::, 2], iCAM_tst[::, ::, 2])
+
+    return mssim_i * mssim_p * mssim_t
+
+
+def cid_appearance(img_ref, img_tst):
+    """
+    G.M. Johnson. Using color appearance in image quality metrics. In Proc. of the International Workshop 
+    on Video Processing and Quality Metrics for Consumer Electronics, pages 1 – 4, 2006.
+    """
+    iCAM_ref = icam.RGB2iCAM(img_ref)#ipt_image
+    iCAM_tst = icam.RGB2iCAM(img_tst)
+    CID = np.nansum(np.power(iCAM_ref - iCAM_tst, 2), 2)
+
+    return np.nanmean(CID)
+
+
+def circular_hue(img_ref, img_tst):
+    """
+    D. Lee and E.S. Rogers. Towards a novel perceptual color difference metric using circular processing 
+    of hue components. In Proc. of the IEEE International Conference on Acoustics, Speech and Signal 
+    Processing, pages 166 – 170, 2014.
+    """
+    wi = np.array([[0.921, 0.105, -0.108], [0.531, 0.330, 0], [0.488, 0.371, 0]])
+    si = np.array([[0.0283, 0.133, 4.336], [0.0392, 0.494, 0], [0.0536, 0.386, 0]])
+    xx, yy = np.meshgrid(np.arange(-11, 12), np.arange(-11, 12))
+
+    h1 = (
+        wi[0, 0] * ifas_misc.gaussian(xx, yy, si[0, 0]) + wi[0, 1] * ifas_misc.gaussian(xx, yy, si[0, 1]) + 
+        wi[0, 2] * ifas_misc.gaussian(xx, yy, si[0, 2])
+        )
+    h1 = h1 / np.sum(h1)
+    h2 = wi[1, 0] * ifas_misc.gaussian(xx, yy, si[1, 0]) + wi[1, 1] * ifas_misc.gaussian(xx, yy, si[1, 1])
+    h2 = h2 / np.sum(h2)
+    h3 = wi[2, 0] * ifas_misc.gaussian(xx, yy, si[2, 0]) + wi[2, 1] * ifas_misc.gaussian(xx, yy, si[2, 1])
+    h3 = h3 / np.sum(h3)
+
+    XYZ_ref = color_transform.linear_color_transform(cv2.cvtColor(img_ref, cv2.COLOR_BGR2RGB), tr_type="rgb_to_xyz")
+    XYZ_tst = color_transform.linear_color_transform(cv2.cvtColor(img_tst, cv2.COLOR_BGR2RGB), tr_type="rgb_to_xyz")
+    O123_ref = color_transform.linear_color_transform(XYZ_ref, tr_type="xyz_to_o1o2o3")
+    O123_tst = color_transform.linear_color_transform(XYZ_tst, tr_type="xyz_to_o1o2o3")
+
+    O1_ref = cv2.filter2D(O123_ref[::, ::, 0].astype("float32"), ddepth=-1, kernel=h1, borderType=cv2.BORDER_REFLECT_101)
+    O2_ref = cv2.filter2D(O123_ref[::, ::, 1].astype("float32"), ddepth=-1, kernel=h2, borderType=cv2.BORDER_REFLECT_101)
+    O3_ref = cv2.filter2D(O123_ref[::, ::, 2].astype("float32"), ddepth=-1, kernel=h3, borderType=cv2.BORDER_REFLECT_101)
+    O1_tst = cv2.filter2D(O123_tst[::, ::, 0].astype("float32"), ddepth=-1, kernel=h1, borderType=cv2.BORDER_REFLECT_101)
+    O2_tst = cv2.filter2D(O123_tst[::, ::, 1].astype("float32"), ddepth=-1, kernel=h2, borderType=cv2.BORDER_REFLECT_101)
+    O3_tst = cv2.filter2D(O123_tst[::, ::, 2].astype("float32"), ddepth=-1, kernel=h3, borderType=cv2.BORDER_REFLECT_101)
+
+    XYZ_ref = color_transform.linear_color_transform(np.dstack((O1_ref, O2_ref, O3_ref)), tr_type="o1o2o3_to_xyz")
+    XYZ_tst = color_transform.linear_color_transform(np.dstack((O1_tst, O2_tst, O3_tst)), tr_type="o1o2o3_to_xyz")
+    rgb_ref_back = color_transform.linear_color_transform(XYZ_ref, tr_type="xyz_to_rgb")
+    rgb_tst_back = color_transform.linear_color_transform(XYZ_tst, tr_type="xyz_to_rgb")
+    rgb_ref_back = np.clip(255 * rgb_ref_back, 0, 255).astype("uint8")
+    rgb_tst_back = np.clip(255 * rgb_tst_back, 0, 255).astype("uint8")
+
+    lab_ref = cv2.cvtColor((rgb_ref_back / 255).astype("float32"), cv2.COLOR_RGB2LAB)
+    lab_tst = cv2.cvtColor((rgb_tst_back / 255).astype("float32"), cv2.COLOR_RGB2LAB)
+    H_ref = np.arctan2(lab_ref[:,:, 2], lab_ref[:,:, 1])
+    H_tst = np.arctan2(lab_tst[:,:, 2], lab_tst[:,:, 1])
+
+    sizewin = 11
+    window = np.ones((sizewin, sizewin))
+    Kh = (360 * 0.01) ** 2
+    Kc = (180 * 0.01) ** 2
+
+    H_ref_mean = np.arctan2(
+        cv2.filter2D(np.cos(H_ref).astype("float32"), ddepth=-1, kernel=window, borderType=cv2.BORDER_REFLECT_101),
+        cv2.filter2D(np.sin(H_ref).astype("float32"), ddepth=-1, kernel=window, borderType=cv2.BORDER_REFLECT_101) 
+        )
+    H_tst_mean = np.arctan2(
+        cv2.filter2D(np.cos(H_tst).astype("float32"), ddepth=-1, kernel=window, borderType=cv2.BORDER_REFLECT_101),
+        cv2.filter2D(np.sin(H_tst).astype("float32"), ddepth=-1, kernel=window, borderType=cv2.BORDER_REFLECT_101) 
+        )
+    DH = (2 * H_ref_mean * H_tst_mean + Kh) / (np.power(H_ref_mean, 2) + np.power(H_tst_mean, 2) + Kh)
+    dH = np.mean(DH)
+
+    C_ref = np.sqrt(np.power(lab_ref[::, ::, 1], 2) + np.power(lab_ref[::, ::, 2], 2))
+    C_ref_mean = cv2.filter2D(C_ref.astype("float32"), ddepth=-1, kernel=window, borderType=cv2.BORDER_REFLECT_101)
+    C_tst = np.sqrt(np.power(lab_tst[::, ::, 1], 2) + np.power(lab_tst[::, ::, 2], 2))
+    C_tst_mean = cv2.filter2D(C_tst.astype("float32"), ddepth=-1, kernel=window, borderType=cv2.BORDER_REFLECT_101)
+    DC = (2 * C_ref_mean * C_tst_mean + Kc) / (np.power(C_ref_mean, 2) + np.power(C_tst_mean, 2) + Kc)
+    dC = np.mean(DC)
+    dL = fidelity_misc.ssim(lab_ref[::, ::, 0], lab_tst[::, ::, 0])
+
+    dE = 1 - dH * dC * dL
+
+    return dE
+
+
+def texture_patch_cd(img_ref, img_tst, th=10, r=1., min_num_pixels=4, sq=False):
+    """
+    B. Ortiz-Jaramillo, A. Kumcu, L. Platisa, and W. Philips. Evaluation of color differences in natural 
+    scene color images. Signal Processing: Image Communication, 71:128 – 137, 2019.
+    """
+    SE = np.ones((np.int_(2 * r + 1), np.int_(2 * r + 1)))
+    ycrcb_ref = cv2.cvtColor(img_ref, cv2.COLOR_BGR2YCrCb)
+    ycrcb_tst = cv2.cvtColor(img_tst, cv2.COLOR_BGR2YCrCb)
+    DL = fidelity_misc.ssim(ycrcb_ref[::, ::, 0], ycrcb_tst[::, ::, 0], ismap=True)
+    dl = 0.
+
+    ycrcb_ref = cv2.cvtColor(img_ref, cv2.COLOR_BGR2YCrCb).astype("float32")
+    ycrcb_tst = cv2.cvtColor(img_tst, cv2.COLOR_BGR2YCrCb).astype("float32")
+    ECbCr = np.sqrt(
+        np.power(ycrcb_ref[::, ::, 1] - ycrcb_tst[::, ::, 1], 2) + 
+        np.power(ycrcb_ref[::, ::, 2] - ycrcb_tst[::, ::, 2], 2)
+        )
+
+    __, lbp_img = compute_texture.lbp(img_ref, th=th, r=r)
+    list_of_patterns = np.unique(lbp_img)
+    cd = 0.
+    wpt = 0.
+    CD = np.zeros(lbp_img.shape)
+    Np = lbp_img.size
+
+    for pp in list_of_patterns:
+        homo_patches = lbp_img == pp
+        homo_patches = cv2.morphologyEx(homo_patches.astype("uint8"), cv2.MORPH_CLOSE, SE.astype("uint8"))
+        num_patches, patch_index, stats, centroids = cv2.connectedComponentsWithStats(homo_patches, 8, cv2.CV_32S)
+        for ii in range(1, num_patches):
+            idx = np.where(patch_index == ii)
+            if idx[0].size > min_num_pixels:
+                if sq:
+                    chroma_spread = np.std(np.power(ECbCr[idx], 2))
+                    p = np.sort(np.array(np.power(ECbCr[idx], 2)).ravel())[::-1]
+                    chroma_extreme = (
+                        np.mean(p[0:np.int_(np.ceil(p.size * 0.01))]) - p[np.int_(np.ceil(p.size * 0.01)) - 1]
+                        )
+                else:
+                    chroma_spread = np.std(ECbCr[idx])
+                    p = np.sort(np.array(ECbCr[idx]).ravel())[::-1]
+                    chroma_extreme = (
+                        np.mean(p[0:np.int_(np.ceil(p.size * 0.01))]) - p[np.int_(np.ceil(p.size * 0.01)) - 1]
+                        )
+                temp = 0.0192 * chroma_spread + 0.0076 * chroma_extreme
+                templ = np.mean((1. - DL[idx]) / 2.)
+                CD[idx] = 0.7 * temp + 0.3 * templ
+
+                wp = (1. * idx[0].size) / Np
+                cd += wp * temp
+                dl += wp * templ
+                wpt += 1  # wp
+
+    return 0.7 * cd + 0.3 * dl
