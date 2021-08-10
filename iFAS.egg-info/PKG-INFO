@@ -1,0 +1,14 @@
+Metadata-Version: 1.1
+Name: iFAS
+Version: 2021-v1
+Summary: image Fidelity Assessment Software
+Home-page: https://github.com/bortizj/iFAS
+Author: Benhur Ortiz-Jaramillo
+Author-email: benhur.ortizjaramillo@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering :: Image Processing
+Classifier: Programming Language :: Python
+Classifier: Topic :: Scientific/Engineering
