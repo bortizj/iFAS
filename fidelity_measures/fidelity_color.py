@@ -803,3 +803,141 @@ def texture_patch_cd(img_ref, img_tst, th=10, r=1., min_num_pixels=4, sq=False):
                 wpt += 1  # wp
 
     return 0.7 * cd + 0.3 * dl
+
+
+def osa_ucs_de(img_ref, img_tst):
+    """
+    R. Huertas, M. Melgosa, and C. Oleari. Performance of a color-difference formula based on OSA-UCS space using 
+    small-medium color differences. Journal of the Optical Society of America A, 23:2077 – 2084, 2006.
+    """
+    Ljg_ref = color_transform.bgr2Ljg(img_ref)
+    Ljg_pro = color_transform.bgr2Ljg(img_tst)
+    C_ref = np.sqrt(np.power(Ljg_ref[::, ::, 1], 2) + np.power(Ljg_ref[::, ::, 2], 2))
+    h_ref = np.arctan2(Ljg_ref[::, ::, 1], -Ljg_ref[::, ::, 2])
+    C_pro = np.sqrt(np.power(Ljg_pro[::, ::, 1], 2) + np.power(Ljg_pro[::, ::, 2], 2))
+    h_pro = np.arctan2(Ljg_pro[::, ::, 1], -Ljg_pro[::, ::, 2])
+    S_L = 2.499 + 0.07 * (Ljg_ref[::, ::, 0] + Ljg_pro[::, ::, 0]) / 2.
+    S_C = 1.235 + 0.58 * (C_ref + C_pro) / 2
+    S_H = 1.392 + 0.17 * (h_ref + h_pro) / 2
+    dL = (Ljg_ref[::, ::, 0] - Ljg_pro[::, ::, 0]) / S_L
+    dC = (C_ref - C_pro) / S_C
+    dh = (h_ref - h_pro) / S_H
+    DE = 10 * np.sqrt(np.power(dL, 2) + np.power(dC, 2) + np.power(dh, 2))
+    dE = np.nanmean(DE)
+    return dE
+
+
+def osa_ucs_sde(img_ref, img_tst):
+    """
+    G. Simone, C. Oleari, and I. Farup. An alternative color difference formula for computing image 
+    difference. In Proc. of the Gjøvik Color Imaging Symposium, pages 8 – 11, 2009.
+    """
+    wi = np.array([[0.921, 0.105, -0.108], [0.531, 0.330, 0], [0.488, 0.371, 0]])
+    si = np.array([[0.0283, 0.133, 4.336], [0.0392, 0.494, 0], [0.0536, 0.386, 0]])
+    xx, yy = np.meshgrid(np.arange(-11, 12), np.arange(-11, 12))
+
+    h1 = (
+        wi[0, 0] * ifas_misc.gaussian(xx, yy, si[0, 0]) + wi[0, 1] * ifas_misc.gaussian(xx, yy, si[0, 1]) + 
+        wi[0, 2] * ifas_misc.gaussian(xx, yy, si[0, 2])
+        )
+    h1 = h1 / np.sum(h1)
+    h2 = wi[1, 0] * ifas_misc.gaussian(xx, yy, si[1, 0]) + wi[1, 1] * ifas_misc.gaussian(xx, yy, si[1, 1])
+    h2 = h2 / np.sum(h2)
+    h3 = wi[2, 0] * ifas_misc.gaussian(xx, yy, si[2, 0]) + wi[2, 1] * ifas_misc.gaussian(xx, yy, si[2, 1])
+    h3 = h3 / np.sum(h3)
+
+    XYZ_ref = color_transform.linear_color_transform(cv2.cvtColor(img_ref, cv2.COLOR_BGR2RGB), tr_type="rgb_to_xyz")
+    XYZ_tst = color_transform.linear_color_transform(cv2.cvtColor(img_tst, cv2.COLOR_BGR2RGB), tr_type="rgb_to_xyz")
+    O123_ref = color_transform.linear_color_transform(XYZ_ref, tr_type="xyz_to_o1o2o3")
+    O123_tst = color_transform.linear_color_transform(XYZ_tst, tr_type="xyz_to_o1o2o3")
+
+    O1_ref = cv2.filter2D(O123_ref[::, ::, 0].astype("float32"), ddepth=-1, kernel=h1, borderType=cv2.BORDER_REFLECT_101)
+    O2_ref = cv2.filter2D(O123_ref[::, ::, 1].astype("float32"), ddepth=-1, kernel=h2, borderType=cv2.BORDER_REFLECT_101)
+    O3_ref = cv2.filter2D(O123_ref[::, ::, 2].astype("float32"), ddepth=-1, kernel=h3, borderType=cv2.BORDER_REFLECT_101)
+    O1_tst = cv2.filter2D(O123_tst[::, ::, 0].astype("float32"), ddepth=-1, kernel=h1, borderType=cv2.BORDER_REFLECT_101)
+    O2_tst = cv2.filter2D(O123_tst[::, ::, 1].astype("float32"), ddepth=-1, kernel=h2, borderType=cv2.BORDER_REFLECT_101)
+    O3_tst = cv2.filter2D(O123_tst[::, ::, 2].astype("float32"), ddepth=-1, kernel=h3, borderType=cv2.BORDER_REFLECT_101)
+
+    XYZ_ref = color_transform.linear_color_transform(np.dstack((O1_ref, O2_ref, O3_ref)), tr_type="o1o2o3_to_xyz")
+    XYZ_tst = color_transform.linear_color_transform(np.dstack((O1_tst, O2_tst, O3_tst)), tr_type="o1o2o3_to_xyz")
+    rgb_ref_back = color_transform.linear_color_transform(XYZ_ref, tr_type="xyz_to_rgb")
+    rgb_tst_back = color_transform.linear_color_transform(XYZ_tst, tr_type="xyz_to_rgb")
+    rgb_ref_back = np.clip(255 * rgb_ref_back, 0, 255).astype("uint8")
+    rgb_tst_back = np.clip(255 * rgb_tst_back, 0, 255).astype("uint8")
+
+    return osa_ucs_de(rgb_ref_back, rgb_tst_back)
+
+
+def color_image_diff(img_ref, img_tst):
+    """
+    I. Lissner, J. Preiss, P. Urban, M.-S. Lichtenauer, and P. Zolliker. Image-difference prediction: From 
+    grayscale to color. IEEE Transactions on Image Processing, 22:435 – 446, 2013.
+    """
+    img1 = cv2.cvtColor(img_ref, cv2.COLOR_BGR2RGB)
+    img2 = cv2.cvtColor(img_tst, cv2.COLOR_BGR2RGB)
+    cycles_per_degree = 20
+    idf_consts = np.array([0.002, 0.1, 0.1, 0.002, 0.008])
+
+    img1_XYZ = color_transform.SRGB_to_XYZ(img1)
+    img1_filt = color_transform.scielab_simple(2 * cycles_per_degree, img1_XYZ)
+    img1_LAB2000HL = color_transform.XYZ_to_LAB2000HL(img1_filt)
+    img2_XYZ = color_transform.SRGB_to_XYZ(img2)
+    img2_filt = color_transform.scielab_simple(2 * cycles_per_degree, img2_XYZ)
+    img2_LAB2000HL = color_transform.XYZ_to_LAB2000HL(img2_filt)
+
+    Window = ifas_misc.matlab_style_gauss2D(shape=(11,11), sigma=1.5)
+
+    img1 = img1_LAB2000HL
+    img2 = img2_LAB2000HL
+    L1 = img1[::, ::, 0]
+    A1 = img1[::, ::, 1]
+    B1 = img1[::, ::, 2]
+    Chr1_sq = np.power(A1, 2) + np.power(B1, 2)
+
+    L2 = img2[::, ::, 0]
+    A2 = img2[::, ::, 1]
+    B2 = img2[::, ::, 2]
+    Chr2_sq = np.power(A2, 2) + np.power(B2, 2)
+
+    muL1 = cv2.filter2D(L1.astype("float32"), ddepth=-1, kernel=Window, borderType=cv2.BORDER_REFLECT_101)
+    muC1 = cv2.filter2D(np.sqrt(Chr1_sq).astype("float32"), ddepth=-1, kernel=Window, borderType=cv2.BORDER_REFLECT_101)
+    muL2 = cv2.filter2D(L2.astype("float32"), ddepth=-1, kernel=Window, borderType=cv2.BORDER_REFLECT_101)
+    muC2 = cv2.filter2D(np.sqrt(Chr2_sq).astype("float32"), ddepth=-1, kernel=Window, borderType=cv2.BORDER_REFLECT_101)
+
+    sL1_sq = cv2.filter2D(
+        np.power(L1, 2).astype("float32"), ddepth=-1, kernel=Window, borderType=cv2.BORDER_REFLECT_101
+        ) - np.power(muL1, 2)
+    sL1_sq[sL1_sq < 0] = 0
+    sL1 = np.sqrt(sL1_sq)
+    sL2_sq = cv2.filter2D(
+        np.power(L2, 2).astype("float32"), ddepth=-1, kernel=Window, borderType=cv2.BORDER_REFLECT_101
+        ) - np.power(muL2, 2)
+    sL2_sq[sL2_sq < 0] = 0
+    sL2 = np.sqrt(sL2_sq)
+
+    dL_sq = np.power(muL1 - muL2,2)
+    dC_sq = np.power(muC1 - muC2,2)
+
+    Tem = np.sqrt(np.power(A1 - A2,2) + np.power(B1 - B2,2) - np.power(np.sqrt(Chr1_sq) - np.sqrt(Chr2_sq),2))
+    Tem_filt = cv2.filter2D(Tem.astype("float32"), ddepth=-1, kernel=Window, borderType=cv2.BORDER_REFLECT_101)
+    dH_sq = np.power(Tem_filt, 2)
+    sL12 = cv2.filter2D(
+        (L1 * L2).astype("float32"), ddepth=-1, kernel=Window, borderType=cv2.BORDER_REFLECT_101
+        ) - muL1 * muL2
+
+    Maps_invL = 1 / (idf_consts[0] * dL_sq + 1)
+    Maps_invLc = (idf_consts[1] + 2 * sL1 * sL2) / (idf_consts[1] + sL1_sq + sL2_sq)
+    Maps_invLs = (idf_consts[2] + sL12) / (idf_consts[2] + sL1 * sL2)
+    Maps_invC = 1 / (idf_consts[3] * dC_sq + 1)
+    Maps_invH = 1 / (idf_consts[4] * dH_sq + 1)
+
+    IDF1 = np.nanmean(Maps_invL)
+    IDF2 = np.nanmean(Maps_invLc)
+    IDF3 = np.nanmean(Maps_invLs)
+    IDF4 = np.nanmean(Maps_invC)
+    IDF5 = np.nanmean(Maps_invH)
+
+    prediction = np.real(1 - IDF1 * IDF2 * IDF3 * IDF4 * IDF5)
+    Prediction = np.real(1 - Maps_invL * Maps_invLc * Maps_invLs * Maps_invC * Maps_invH)
+
+    return prediction

@@ -15,7 +15,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 author: Benhur Ortiz-Jaramillo
 """
 
+from scipy import signal
 import numpy as np
+from gui import ifas_misc
 import cv2
 
 
@@ -288,3 +290,122 @@ def dct_block_mse(A_ref, A_pro):
     s2 = np.nanmean(S2blk)
 
     return s1, s2, S1blk, S2blk
+
+
+# Separable filers
+def separable_filters(samp_per_deg, dimension=1):
+    min_samp_per_deg = 224.
+    if ((samp_per_deg < min_samp_per_deg) and dimension != 2):
+        uprate = np.ceil(min_samp_per_deg / samp_per_deg)
+        samp_per_deg = samp_per_deg * uprate
+    else:
+        uprate = 1.
+
+    x1 = np.array([0.05, 1.00327, 0.225, 0.114416, 7.0, -0.117686])
+    x2 = np.array([0.0685, 0.616725, 0.826, 0.383275])
+    x3 = np.array([0.0920, 0.567885, 0.6451, 0.432115])
+
+    x1[[1, 3, 5]] = x1[[1, 3, 5]] * samp_per_deg
+    x2[[1, 3]] = x2[[1, 3]] * samp_per_deg
+    x3[[1, 3]] = x3[[1, 3]] * samp_per_deg
+    width = np.ceil(samp_per_deg / 2) * 2 - 1
+
+    k1 = np.vstack((
+        np.vstack((ifas_misc.gauss(x1[0], width) * np.sqrt(np.abs(x1[1])) * np.sign(x1[1]), 
+                   ifas_misc.gauss(x1[2], width) * np.sqrt(np.abs(x1[3])) * np.sign(x1[3]))),
+        ifas_misc.gauss(x1[4], width) * np.sqrt(np.abs(x1[5])) * np.sign(x1[5])))
+    k2 = np.vstack((
+        ifas_misc.gauss(x2[0], width) * np.sqrt(np.abs(x2[1])) * np.sign(x2[1]),
+        ifas_misc.gauss(x2[2], width) * np.sqrt(np.abs(x2[3])) * np.sign(x2[3])
+        ))
+    k3 = np.vstack((
+        ifas_misc.gauss(x3[0], width) * np.sqrt(np.abs(x3[1])) * np.sign(x3[1]),
+        ifas_misc.gauss(x3[2], width) * np.sqrt(np.abs(x3[3])) * np.sign(x3[3])
+        ))
+
+    if ((dimension != 2) and uprate > 1):
+        upcol = np.hstack((np.arange(1, uprate + 1), np.arange(uprate - 1, 0, -1))) / uprate
+        s = upcol.size
+        upcol = resize(upcol, np.array([1, s + width - 1]))
+        up1 = signal.convolve2d(k1, upcol, mode='same')
+        up2 = signal.convolve2d(k2, upcol, mode='same')
+        up3 = signal.convolve2d(k3, upcol, mode='same')
+        s = up1.shape[1]
+        mid = np.ceil(s / 2.)
+        downs = np.hstack((np.arange(1, mid, uprate), np.arange(mid + uprate, up1.shape[1], uprate)))
+        k1 = up1[:, np.int_(downs)]
+        k2 = up2[:, np.int_(downs)]
+        k3 = up3[:, np.int_(downs)]
+
+    return k1, k2, k3
+
+
+# Resize the vector
+def resize(orig, newSize, align=np.array([0, 0]), padding=0):
+    sizem1n1 = orig.shape
+    if isinstance(newSize, int):
+        newSize = np.array([newSize, newSize])
+    if isinstance(align, int):
+        align = np.array([align, align])
+    n1 = sizem1n1[0]
+    if len(sizem1n1) < 2:
+        m1 = 1
+    else:
+        m1 = sizem1n1[0]
+        n1 = sizem1n1[1]
+    orig = orig.reshape((m1, n1))
+    m2 = int(newSize[0])
+    n2 = int(newSize[1])
+    m = np.minimum(m1, m2)
+    n = np.minimum(n1, n2)
+    result = np.ones((m2, n2)) * padding
+    start1 = [np.floor((m1 - m) / 2. * (1. + align[0])), np.floor((n1 - n) / 2. * (1. + align[1]))]
+    start2 = [np.floor((m2 - m) / 2. * (1. + align[0])), np.floor((n2 - n) / 2. * (1. + align[1]))]
+    result[np.arange(int(start2[0]), int(start2[0] + m))[:,None], np.arange(int(start2[1]), int(start2[1] + n))] = \
+        orig[np.arange(int(start1[0]), int(start1[0] + m))[:,None], np.arange(int(start1[1]), int(start1[1] + n))]
+
+    return result
+
+
+# image padding for the convolution
+def pad4conv(im, kernelsize, dim=None):
+    if not isinstance(kernelsize, list):
+        kernelsize = [kernelsize, kernelsize]
+    if dim is None:
+        dim = 3
+    imsize = im.shape
+    m = imsize[0]
+    n = imsize[1]
+    if (kernelsize[0] >= m):
+        h = np.floor(m / 2.)
+    else:
+        h = np.floor(kernelsize[0] / 2)
+    if (kernelsize[1] >= n):
+        w = np.floor(n / 2.)
+    else:
+        w = np.floor(kernelsize[1] / 2)
+    if h != 0 and dim != 2:
+        im = np.vstack((im, np.flipud(im[range(int(m) - int(h), int(m)), :])))
+        im = np.vstack((np.flipud(im[range(0, int(h)), :]), im))
+    if w != 0 and dim != 1:
+        im = np.hstack((im, np.fliplr(im[:, range(int(n) - int(w), int(n))])))
+        im = np.hstack((np.fliplr(im[:, range(0, int(w))]), im))
+    return im
+
+
+# Separable image convolution
+def separable_conv(im, xkernels, ykernels=None):
+    if ykernels is None:
+        ykernels = xkernels
+    imsize = im.shape
+    w1 = pad4conv(im, xkernels.shape[1], 2)
+    result = np.zeros(imsize)
+    for jj in range(xkernels.shape[0]):
+        p = signal.convolve2d(w1, xkernels[jj, :].reshape((1, xkernels.shape[1])), mode='full')
+        p = resize(p, imsize)
+        w2 = pad4conv(p, ykernels.shape[1], 1)
+        p = signal.convolve2d(w2, ykernels[jj, :].reshape((xkernels.shape[1], 1)), mode='full')
+        p = resize(p, imsize)
+        result = result + p
+
+    return result

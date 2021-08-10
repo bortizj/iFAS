@@ -18,7 +18,10 @@ to assist researchers, engineers and other users in the process of image
 fidelity assessment.
  
 iFAS provides easy access to a range of state-of-the-art methods as well 
-as intuitive visualizations that aid data analysis. The software is freely 
+as intuitive visualizations that aid data analysis. Also, iFAS offers a 
+wide variety of image fidelity measures: five miscellaneous measures, 
+twelve texture-based measures, five fidelity measures based on contrast 
+and twenty-three image color difference measures. The software is freely 
 available to all for non-commercial use. 
 
 iFAS includes a range of common mechanisms for image fidelity assessment 

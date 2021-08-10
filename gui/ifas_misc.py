@@ -39,6 +39,35 @@ def gaussian(x, y, sigma):
     return g / np.sum(g)
 
 
+# 1 D Gaussian
+def gauss(halfWidth, width):
+    alpha = 2. * np.sqrt(np.log(2.)) / (halfWidth - 1.)
+    x = np.arange(1, width + 1) - round(width / 2.)
+    g = np.exp(-alpha * alpha * x * x)
+
+    return g / np.sum(g)
+
+
+# Function for CID measure
+def lum_fun(Y):
+    fY = np.sign(Y) * np.power(np.abs(Y), 1. / 3.)
+    ii = (Y < 0.008856)
+    fY[ii] = Y[ii]*(841./108.) + (4./29.)
+    return fY
+
+
+# Creates Matlab type Gaussian filter
+def matlab_style_gauss2D(shape=(3,3),sigma=0.5):
+    m,n = [(ss-1.)/2. for ss in shape]
+    y,x = np.ogrid[-m:m+1,-n:n+1]
+    h = np.exp( -(x*x + y*y) / (2.*sigma*sigma) )
+    h[ h < np.finfo(h.dtype).eps*h.max()] = 0
+    sumh = h.sum()
+    if sumh != 0:
+        h /= sumh
+    return h
+
+
 # Creates iFas logo image
 def logo_image(size_in):
     # Create a black image
