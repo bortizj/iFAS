@@ -166,11 +166,13 @@ def scielab_simple(samp_per_deg, image):
     return xyz
 
 
+# CID color spaces XYZ to LAB 2000
 def XYZ_to_LAB2000HL(XYZ):
     LAB = XYZ_to_LAB(XYZ)
     return LAB_2_LAB2000HL(LAB)
 
 
+# CID color spaces XYZ to LAB
 def XYZ_to_LAB(XYZ):
     WhitePoint = np.array([0.950456, 1, 1.088754])
     X = XYZ[:, :, 0] / WhitePoint[0]
@@ -186,6 +188,7 @@ def XYZ_to_LAB(XYZ):
     return np.dstack((L, a, b))
 
 
+# CID color spaces LAB to LAB2000
 def LAB_2_LAB2000HL(LAB):
     L = LAB[:, :, 0]
     a = LAB[:, :, 1]

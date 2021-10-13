@@ -25,6 +25,7 @@ import os
 import numpy as np
 import pandas as pd
 import cv2
+import traceback
 
 from iFAS.processing.ifas_stats import compute_1dcorrelations
 from iFAS.processing.regression_tools import RegressionModel
@@ -90,11 +91,13 @@ class ImgDatabase(object):
         try:
             psh.process_data()
         except Exception as error:
-                self.logger.print(level="ERROR", message="Processing database " + repr(error))
-                try:
-                    tk.messagebox.showerror("Error", "Something went wrong processing! \n" + repr(error), master=self.win)
-                except:
-                    return
+            str_trace = traceback.format_exc()
+            self.logger.print(level="ERROR", message="Processing database " + repr(error))
+            self.logger.print(level="ERROR", message=str_trace)
+            try:
+                tk.messagebox.showerror("Error", "Something went wrong processing! \n" + repr(error), master=self.win)
+            except:
+                return
 
     # Computing the correlations for the set of data
     def compute_correlations(self):
@@ -269,7 +272,9 @@ class ProcessHandler(object):
                             try:
                                 val = self.measures[kk][1](ref_img, tst_img)
                             except Exception as error:
+                                str_trace = traceback.format_exc()
                                 self.db.logger.print(level="ERROR", message="Processing database " + repr(error))
+                                self.db.logger.print(level="ERROR", message=str_trace)
                                 val = np.nan
 
                         vals.append(val)

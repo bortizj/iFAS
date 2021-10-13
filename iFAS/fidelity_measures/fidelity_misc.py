@@ -22,6 +22,8 @@ import cv2
 import iFAS.processing.img_misc as misc
 
 
+
+# Old well known PSNR
 def psnr(ref_img, tst_img):
     mse = np.mean(np.power(ref_img - tst_img, 2))
     if mse != 0:

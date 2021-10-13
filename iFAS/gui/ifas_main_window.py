@@ -24,6 +24,7 @@ import tkinter.filedialog
 from tkinter import font
 import numpy as np
 import importlib
+import traceback
 import threading
 import inspect
 import pathlib
@@ -355,7 +356,9 @@ class AppIFAS(object):
             try:
                 dis_levels = list(map(float, settings[1]))
             except Exception as error:
+                str_trace = traceback.format_exc()
                 self.logger.print(level="ERROR", message="Reading distortion levels: " + repr(error))
+                self.logger.print(level="ERROR", message=str_trace)
                 tk.messagebox.showerror(
                     "Error", "Something wrong reading distortion levels! \n" + repr(error), master=self.win
                     )
@@ -392,7 +395,9 @@ class AppIFAS(object):
                     getattr(add_distortions, distortion)(current_source, lvl=dis_levels[jj], out_folder=out_fol)
                     self.logger.print(level="INFO", message=out_fol)
             except Exception as error:
+                str_trace = traceback.format_exc()
                 self.logger.print(level="ERROR", message="Generating database " + current_source + " " + repr(error))
+                self.logger.print(level="ERROR", message=str_trace)
                 tk.messagebox.showerror("Error", "Something went wrong! \n" + repr(error), master=self.win)
 
             self.progress_bar["value"] += increment
@@ -418,7 +423,9 @@ class AppIFAS(object):
             self.load_data()
             self.disp_imgs()
         except Exception as error:
+            str_trace = traceback.format_exc()
             self.logger.print(level="ERROR", message="Generating database " + repr(error))
+            self.logger.print(level="ERROR", message=str_trace)
             tk.messagebox.showerror("Error", "Something went wrong! \n" + repr(error), master=self.win)
             self.db = None
             return
@@ -707,8 +714,10 @@ class AppIFAS(object):
             ini_par = list(map(float, input_txt))
             self.db.optimize_model(model, target, ini_par)
         except Exception as error:
-            tk.messagebox.showerror("Error", "Something went wrong! \n" + repr(error), master=self.win)
+            str_trace = traceback.format_exc()
             self.logger.print(level="ERROR", message="Something went wrong! \n" + repr(error))
+            self.logger.print(level="ERROR", message=str_trace)
+            tk.messagebox.showerror("Error", "Something went wrong! \n" + repr(error), master=self.win)
             return        
 
         self.logger.print(level="INFO", message="Optimization finished ")
